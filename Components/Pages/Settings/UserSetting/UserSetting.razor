@@ -1,0 +1,40 @@
+@page "/settings/users"
+@attribute [Authorize]
+@attribute [NavMenu("Users", Icons.Material.Filled.People, Parent = "/settings", Order = 10)]
+
+<PageTitle>Users · SiS Workspace</PageTitle>
+
+<section class="portal-page">
+    <header class="portal-page-header">
+        <div class="portal-page-header-copy">
+            <p class="portal-eyebrow">Settings / Users</p>
+            <h1 class="portal-page-title">Development identities</h1>
+            <p class="portal-page-subtitle">These accounts exercise the same claims and authorization APIs that Microsoft Entra ID will use later.</p>
+        </div>
+        <span class="status-chip warning">Fake provider</span>
+    </header>
+
+    <section class="table-shell">
+        <div class="portal-card-header table-heading">
+            <div>
+                <h2 class="portal-card-title">Available roles</h2>
+                <p class="portal-card-subtitle">Use the sidebar sign-in controls to switch identity.</p>
+            </div>
+            <span class="status-chip info">2 roles</span>
+        </div>
+        <div class="table-scroll">
+            <table class="portal-table">
+                <thead><tr><th>Role</th><th>Purpose</th><th>Provider</th><th>Status</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>User</strong></td><td>Standard authenticated navigation and page access</td><td>FakeAuthentication</td><td><span class="status-chip success">Available</span></td></tr>
+                    <tr><td><strong>Admin</strong></td><td>Role-claim testing for future administrative features</td><td>FakeAuthentication</td><td><span class="status-chip success">Available</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="portal-alert development-warning">
+        <strong>Development only</strong>
+        <span>The fake provider is blocked outside the Development environment and must be replaced before deployment.</span>
+    </div>
+</section>

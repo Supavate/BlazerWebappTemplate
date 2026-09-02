@@ -1,0 +1,55 @@
+@using MyWebApp.Infrastructure.Authentication
+@inject FakeAuthStateProvider Authentication
+@inject NavigationManager Navigation
+
+<div class="sidebar-account">
+    <AuthorizeView Context="authenticationState">
+        <Authorized>
+            <div class="account-summary">
+                <MudAvatar Color="@Color.Tertiary" Size="@Size.Medium">
+                    @GetInitials(authenticationState.User.Identity?.Name)
+                </MudAvatar>
+                <div class="sidebar-expanded-content account-copy">
+                    <strong>@authenticationState.User.Identity?.Name</strong>
+                    <span>@GetEmail(authenticationState.User)</span>
+                    <small>@GetRole(authenticationState.User)</small>
+                </div>
+            </div>
+            <MudButton Variant="@Variant.Text"
+                       Color="@Color.Inherit"
+                       StartIcon="@Icons.Material.Filled.Logout"
+                       FullWidth="true"
+                       OnClick="SignOutAsync"
+                       Class="sidebar-account-button">
+                <span class="sidebar-expanded-content">Sign out</span>
+            </MudButton>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private async Task SignOutAsync()
+    {
+        await Authentication.SignOutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "DU";
+        }
+
+        return string.Concat(name
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0])));
+    }
+
+    private static string GetEmail(System.Security.Claims.ClaimsPrincipal user) =>
+        user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "No email";
+
+    private static string GetRole(System.Security.Claims.ClaimsPrincipal user) =>
+        user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "User";
+}

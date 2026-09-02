@@ -1,0 +1,29 @@
+# ---- Build Stage ----
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy csproj first for layer caching
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy everything else and publish
+COPY . .
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+# ---- Runtime Stage ----
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Non-root user (best practice)
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
+
+COPY --from=build /app/publish .
+
+# Kestrel listens on 8080 internally (no HTTPS in-container)
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "MyWebApp.dll"]

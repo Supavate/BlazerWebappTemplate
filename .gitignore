@@ -1,0 +1,66 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+[Pp]ublish/
+
+# Test and coverage output
+[Tt]est[Rr]esults/
+tests/**/.verification/
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+
+# Visual Studio and VS Code
+.vs/
+.vscode/
+*.suo
+*.user
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider and ReSharper
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet and package artifacts
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+
+# Local ASP.NET Core state and secrets
+.data-protection-keys/
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+
+# Local databases and logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+logs/
+
+# Frontend dependencies, if introduced later
+node_modules/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~

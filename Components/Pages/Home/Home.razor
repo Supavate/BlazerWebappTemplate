@@ -1,0 +1,81 @@
+@page "/"
+@attribute [Authorize]
+@attribute [NavMenu("Home", Icons.Material.Filled.Home, Order = 0)]
+
+<PageTitle>Home · SiS Workspace</PageTitle>
+
+<section class="portal-page">
+    <header class="portal-page-header">
+        <div class="portal-page-header-copy">
+            <p class="portal-eyebrow">Workspace overview</p>
+            <h1 class="portal-page-title">Everything your team needs, in one place.</h1>
+            <p class="portal-page-subtitle">
+                This starter demonstrates a reusable application shell, automatic navigation,
+                centralized styling, and authentication-ready page structure.
+            </p>
+        </div>
+        <div class="portal-actions">
+            <span class="status-chip success">System ready</span>
+            <MudButton Href="/settings/users" Variant="@Variant.Filled" Color="@Color.Tertiary" EndIcon="@Icons.Material.Filled.ArrowForward">
+                View users
+            </MudButton>
+        </div>
+    </header>
+
+    <div class="metric-grid">
+        <article class="metric-card">
+            <span class="metric-label">Navigation</span>
+            <strong class="metric-value">Automatic</strong>
+            <span class="metric-note">Discovered once when the application starts</span>
+        </article>
+        <article class="metric-card">
+            <span class="metric-label">Authentication</span>
+            <strong class="metric-value">Ready</strong>
+            <span class="metric-note">Development provider with User and Admin roles</span>
+        </article>
+        <article class="metric-card">
+            <span class="metric-label">Theme</span>
+            <strong class="metric-value">Unified</strong>
+            <span class="metric-note">CSS tokens mapped to MudBlazor components</span>
+        </article>
+    </div>
+
+    <div class="portal-grid">
+        <article class="portal-card">
+            <div class="portal-card-header">
+                <div>
+                    <h2 class="portal-card-title">Template capabilities</h2>
+                    <p class="portal-card-subtitle">Foundations already connected and ready to extend.</p>
+                </div>
+            </div>
+            <ul class="portal-list">
+                <li class="portal-list-item">
+                    <div class="portal-list-copy"><strong>Reflection-driven menu</strong><span>Add a page route and NavMenu attribute—nothing else.</span></div>
+                    <span class="status-chip success">Active</span>
+                </li>
+                <li class="portal-list-item">
+                    <div class="portal-list-copy"><strong>Role-aware identity</strong><span>Switch between development User and Admin identities.</span></div>
+                    <span class="status-chip info">POC</span>
+                </li>
+                <li class="portal-list-item">
+                    <div class="portal-list-copy"><strong>Backend boundaries</strong><span>Application, configuration, and infrastructure stay separated.</span></div>
+                    <span class="status-chip success">Ready</span>
+                </li>
+            </ul>
+        </article>
+
+        <article class="portal-card">
+            <div class="portal-card-header">
+                <div>
+                    <h2 class="portal-card-title">Add your next feature</h2>
+                    <p class="portal-card-subtitle">Keep new work inside the established boundaries.</p>
+                </div>
+            </div>
+            <ol class="implementation-steps">
+                <li><span>1</span><div><strong>Create the page</strong><p>Declare one route and its authorization policy.</p></div></li>
+                <li><span>2</span><div><strong>Add menu metadata</strong><p>Provide its label, icon, order, and optional parent.</p></div></li>
+                <li><span>3</span><div><strong>Connect a use case</strong><p>Depend on an Application abstraction, not infrastructure.</p></div></li>
+            </ol>
+        </article>
+    </div>
+</section>

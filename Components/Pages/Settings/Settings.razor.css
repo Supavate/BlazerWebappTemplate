@@ -1,0 +1,16 @@
+.settings-card-icon {
+    align-items: center;
+    background: var(--accent-light-theme);
+    border-radius: var(--radius-md);
+    color: var(--accent-hover-theme);
+    display: inline-flex;
+    height: 46px;
+    justify-content: center;
+    margin-bottom: var(--space-5);
+    width: 46px;
+}
+
+::deep .settings-card-action,
+.settings-card-status {
+    margin-top: var(--space-5);
+}

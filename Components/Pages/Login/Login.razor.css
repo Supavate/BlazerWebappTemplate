@@ -1,0 +1,62 @@
+.login-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-theme);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    max-width: 480px;
+    padding: var(--space-7);
+    width: 100%;
+}
+
+.login-brand {
+    align-items: center;
+    color: var(--primary-theme);
+    display: flex;
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+    gap: var(--space-3);
+}
+
+.login-brand-icon {
+    align-items: center;
+    background: var(--accent-theme);
+    border-radius: var(--radius-md);
+    color: var(--inverse-text);
+    display: inline-flex;
+    height: 48px;
+    justify-content: center;
+    width: 48px;
+}
+
+.login-copy {
+    margin-top: var(--space-7);
+}
+
+.login-copy h1 {
+    color: var(--primary-theme);
+    font-size: 2.25rem;
+    letter-spacing: -.04em;
+    margin: 0;
+}
+
+.login-copy > p:last-child {
+    color: var(--secondary-text);
+    line-height: 1.6;
+    margin: var(--space-3) 0 0;
+}
+
+.login-actions {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+}
+
+.login-note {
+    align-items: center;
+    color: var(--secondary-text);
+    display: flex;
+    font-size: var(--font-size-xs);
+    gap: var(--space-2);
+    justify-content: center;
+    margin: var(--space-5) 0 0;
+}

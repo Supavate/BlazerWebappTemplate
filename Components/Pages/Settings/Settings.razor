@@ -1,0 +1,34 @@
+@page "/settings"
+@attribute [Authorize]
+@attribute [NavMenu("Settings", Icons.Material.Filled.Settings, Order = 20)]
+
+<PageTitle>Settings · SiS Workspace</PageTitle>
+
+<section class="portal-page">
+    <header class="portal-page-header">
+        <div class="portal-page-header-copy">
+            <p class="portal-eyebrow">Administration</p>
+            <h1 class="portal-page-title">Settings</h1>
+            <p class="portal-page-subtitle">Centralized controls for application identity, access, and future integrations.</p>
+        </div>
+        <span class="status-chip info">Development configuration</span>
+    </header>
+
+    <div class="portal-grid">
+        <article class="portal-card">
+            <div class="settings-card-icon"><MudIcon Icon="@Icons.Material.Filled.People" /></div>
+            <h2 class="portal-card-title">User access</h2>
+            <p class="portal-card-subtitle">Review the sample identities and role claims used by the development provider.</p>
+            <MudButton Href="/settings/users" Variant="@Variant.Text" Color="@Color.Tertiary" EndIcon="@Icons.Material.Filled.ArrowForward" Class="settings-card-action">
+                Open users
+            </MudButton>
+        </article>
+
+        <article class="portal-card">
+            <div class="settings-card-icon"><MudIcon Icon="@Icons.Material.Filled.Palette" /></div>
+            <h2 class="portal-card-title">Appearance</h2>
+            <p class="portal-card-subtitle">Brand colors and component styling are controlled by the portable theme kit.</p>
+            <span class="status-chip success settings-card-status">Configured</span>
+        </article>
+    </div>
+</section>

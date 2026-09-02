@@ -1,0 +1,33 @@
+.login-shell {
+    align-items: center;
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent-theme) 13%, transparent), transparent 34%),
+        linear-gradient(145deg, var(--bg-body), var(--bg-surface-muted));
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--space-7);
+}
+
+#blazor-error-ui {
+    background: var(--danger-theme);
+    bottom: 0;
+    color: var(--inverse-text);
+    display: none;
+    left: 0;
+    padding: var(--space-3) var(--space-5);
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+}
+
+#blazor-error-ui .reload {
+    color: var(--inverse-text);
+    margin-left: var(--space-2);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: var(--space-4);
+}

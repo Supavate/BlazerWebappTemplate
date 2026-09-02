@@ -1,0 +1,96 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+
+@if (Item.HasChildren)
+{
+    <div class="nav-group-hover-region"
+         @onmouseenter="Expand"
+         @onmouseleave="CollapseUnlessSelected">
+        <MudNavLink Href="@Item.Route"
+                    Icon="@Item.Icon"
+                    Match="@NavLinkMatch.All">
+            <span class="nav-parent-content">
+                <span>@Item.Title</span>
+                <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown"
+                         Size="@Size.Small"
+                         Class="nav-child-indicator"
+                         aria-hidden="true" />
+            </span>
+        </MudNavLink>
+
+        @if (_expanded)
+        {
+            <div class="nav-submenu">
+                @foreach (var child in Item.Children)
+                {
+                    <NavTreeItem Item="child" />
+                }
+            </div>
+        }
+    </div>
+}
+else
+{
+    <MudNavLink Href="@Item.Route" Icon="@Item.Icon" Match="@GetMatchMode(Item)">
+        @Item.Title
+    </MudNavLink>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public NavItem Item { get; set; } = default!;
+
+    private bool _expanded;
+
+    private bool ShouldStayExpanded => IsRouteActive(Item) || Item.Children.Any(ContainsActiveRoute);
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (ShouldStayExpanded)
+        {
+            _expanded = true;
+        }
+    }
+
+    private void Expand() => _expanded = true;
+
+    private void CollapseUnlessSelected() => _expanded = ShouldStayExpanded;
+
+    private bool IsRouteActive(NavItem item)
+    {
+        var currentRoute = NormalizeRoute(Navigation.ToBaseRelativePath(Navigation.Uri));
+        var itemRoute = NormalizeRoute(item.Route);
+
+        return string.Equals(currentRoute, itemRoute, StringComparison.OrdinalIgnoreCase) ||
+               (itemRoute != "/" && currentRoute.StartsWith($"{itemRoute}/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool ContainsActiveRoute(NavItem item) =>
+        IsRouteActive(item) || item.Children.Any(ContainsActiveRoute);
+
+    private static string NormalizeRoute(string route)
+    {
+        var path = route.Split('?', '#')[0].Trim('/');
+        return path.Length == 0 ? "/" : $"/{path}";
+    }
+
+    private static NavLinkMatch GetMatchMode(NavItem item) => item.Route == "/"
+        ? NavLinkMatch.All
+        : NavLinkMatch.Prefix;
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _expanded = ShouldStayExpanded;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= HandleLocationChanged;
+    }
+}

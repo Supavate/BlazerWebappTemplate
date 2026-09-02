@@ -1,0 +1,25 @@
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type="checkbox"]) {
+    outline: 1px solid var(--success-theme);
+}
+
+.invalid {
+    outline: 1px solid var(--danger-theme);
+}
+
+.validation-message {
+    color: var(--danger-theme);
+}
+
+.blazor-error-boundary {
+    background: var(--danger-theme);
+    color: var(--inverse-text);
+    padding: var(--space-4);
+}
+
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}

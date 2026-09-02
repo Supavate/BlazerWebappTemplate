@@ -1,0 +1,5 @@
+.development-warning {
+    background: color-mix(in srgb, var(--warning-theme) 8%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--warning-theme) 24%, var(--bg-surface));
+    color: var(--warning-theme);
+}

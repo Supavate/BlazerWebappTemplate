@@ -1,0 +1,50 @@
+.sidebar-account {
+    --mud-palette-action-default-hover: var(--sidebar-highlight);
+    border-top: 1px solid var(--sidebar-border);
+    color: var(--inverse-text);
+    flex: 0 0 auto;
+    overflow: hidden;
+    padding: var(--space-4) var(--space-1) var(--space-1);
+}
+
+.account-summary {
+    align-items: center;
+    display: flex;
+    gap: var(--space-3);
+    min-height: 48px;
+    padding: 0 var(--space-1) var(--space-3);
+    white-space: nowrap;
+}
+
+.account-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+    min-width: 0;
+}
+
+.account-copy strong,
+.account-copy span,
+.account-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-copy span,
+.account-copy small {
+    color: var(--sidebar-text-muted);
+    font-size: var(--font-size-xs);
+}
+
+::deep .sidebar-account-button {
+    border-radius: var(--radius-md);
+    justify-content: flex-start;
+    margin-top: var(--space-1);
+    min-height: 42px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+::deep .sidebar-account-button:hover {
+    color: var(--sidebar-highlight-text);
+}

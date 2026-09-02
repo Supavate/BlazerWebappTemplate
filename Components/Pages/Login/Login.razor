@@ -1,0 +1,60 @@
+@page "/login"
+@layout LoginLayout
+@attribute [AllowAnonymous]
+@using MyWebApp.Infrastructure.Authentication
+@inject FakeAuthStateProvider Authentication
+@inject NavigationManager Navigation
+@inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configuration.ApplicationOptions> ApplicationOptions
+
+<PageTitle>Sign in · @ApplicationOptions.Value.Name</PageTitle>
+
+<section class="login-card" aria-labelledby="login-title">
+    <div class="login-brand justify-center">
+        <span class="login-brand-icon">
+            <MudIcon Icon="@BrandIconResolver.Resolve(ApplicationOptions.Value.Icon)" Size="@Size.Large" />
+        </span>
+        <span>@ApplicationOptions.Value.Name</span>
+    </div>
+
+    <div class="login-actions">
+        <MudButton Variant="@Variant.Filled"
+                   Color="@Color.Tertiary"
+                   StartIcon="@Icons.Material.Filled.Person"
+                   FullWidth="true"
+                   Size="@Size.Large"
+                   OnClick="@(() => SignInAsync("User"))">
+            Continue as User
+        </MudButton>
+        <MudButton Variant="@Variant.Outlined"
+                   Color="@Color.Primary"
+                   StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                   FullWidth="true"
+                   Size="@Size.Large"
+                   OnClick="@(() => SignInAsync("Admin"))">
+            Continue as Admin
+        </MudButton>
+    </div>
+</section>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private async Task SignInAsync(string role)
+    {
+        await Authentication.SignInAsync(role);
+        Navigation.NavigateTo(GetSafeReturnUrl(), replace: true);
+    }
+
+    private string GetSafeReturnUrl()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnUrl) ||
+            !ReturnUrl.StartsWith("/", StringComparison.Ordinal) ||
+            ReturnUrl.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        return ReturnUrl;
+    }
+}
