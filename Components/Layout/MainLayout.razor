@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationService Navigation
-@inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configuration.ApplicationOptions> ApplicationOptions
+@inject NavigationAuthorizationService NavigationAuthorization
+@inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configurations.ApplicationOptions> ApplicationOptions
 
 <MudThemeProvider Theme="@AppTheme.Theme" />
 <MudPopoverProvider />
@@ -26,7 +27,7 @@
             <div class="sidebar-divider" role="presentation"></div>
 
             <MudNavMenu Class="sidebar-navigation">
-                @foreach (var item in Navigation.Items)
+                @foreach (var item in _navigationItems)
                 {
                     <NavTreeItem Item="item" />
                 }
@@ -63,4 +64,11 @@
 
 @code {
     private bool _drawerOpen;
+    private IReadOnlyList<NavItem> _navigationItems = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _navigationItems = await NavigationAuthorization
+            .GetAuthorizedItemsAsync(Navigation.Items);
+    }
 }

@@ -1,5 +1,4 @@
 @page "/"
-@attribute [Authorize]
 @attribute [NavMenu("Home", Icons.Material.Filled.Home, Order = 0)]
 
 <PageTitle>Home · SiS Workspace</PageTitle>
@@ -29,9 +28,9 @@
             <span class="metric-note">Discovered once when the application starts</span>
         </article>
         <article class="metric-card">
-            <span class="metric-label">Authentication</span>
+            <span class="metric-label">Health API</span>
             <strong class="metric-value">Ready</strong>
-            <span class="metric-note">Development provider with User and Admin roles</span>
+            <span class="metric-note">JSON status available from /api/health</span>
         </article>
         <article class="metric-card">
             <span class="metric-label">Theme</span>
@@ -54,8 +53,8 @@
                     <span class="status-chip success">Active</span>
                 </li>
                 <li class="portal-list-item">
-                    <div class="portal-list-copy"><strong>Role-aware identity</strong><span>Switch between development User and Admin identities.</span></div>
-                    <span class="status-chip info">POC</span>
+                    <div class="portal-list-copy"><strong>Health monitoring</strong><span>Expose application readiness through a standard API endpoint.</span></div>
+                    <span class="status-chip info">Ready</span>
                 </li>
                 <li class="portal-list-item">
                     <div class="portal-list-copy"><strong>Backend boundaries</strong><span>Application, configuration, and infrastructure stay separated.</span></div>

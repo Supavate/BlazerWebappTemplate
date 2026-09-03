@@ -1,6 +1,6 @@
 # MyWebApp Developer Guide
 
-MyWebApp is a .NET 10 Blazor Web App using interactive server rendering and MudBlazor. It includes automatic sidebar navigation, a centralized theme, development-only fake authentication, and a backend structure ready for application and infrastructure services.
+MyWebApp is a .NET 10 Blazor Web App using interactive server rendering and MudBlazor. It includes automatic sidebar navigation, a centralized theme, a health-check API, and a backend structure ready for application and infrastructure services.
 
 ## Quick start
 
@@ -8,17 +8,82 @@ Requirements:
 
 - .NET 10 SDK
 - A trusted ASP.NET Core development certificate for local HTTPS
+- Redis 6 or later
+
+Start a local Redis container:
+
+```powershell
+docker run --name mywebapp-redis -p 6379:6379 -d redis:7-alpine
+```
 
 From the project directory:
 
 ```powershell
 dotnet restore
+dotnet user-secrets set "AzureAd:ClientSecret" "YOUR-CLIENT-SECRET"
 dotnet run --launch-profile https
 ```
 
-Open `https://localhost:7174`. The HTTP profile is available at `http://localhost:5095`.
+Open `https://localhost:7174`. Local authentication uses HTTPS so its generated redirect URI matches the Entra app registration.
 
-The login page offers development-only User and Admin identities. Fake authentication is intentionally blocked outside the Development environment.
+The default Redis connection is `localhost:6379`. Override it without editing committed settings when necessary:
+
+```powershell
+$env:ConnectionStrings__Redis = "redis-host:6379,password=YOUR_PASSWORD,ssl=true,abortConnect=false"
+dotnet run --launch-profile https
+```
+
+Microsoft Entra ID authentication is registered through Microsoft Identity Web. Every Blazor page and interactive circuit requires an authenticated organizational user; the health-check API remains public.
+
+The application requests the delegated Microsoft Graph `User.Read` permission. Add this permission under **App registrations > API permissions > Microsoft Graph > Delegated permissions** in Microsoft Entra. The current-user service calls `/me` for display name, email, job title, and office location while retaining the tenant ID, object ID, and roles from authentication claims.
+
+Inject `ICurrentUserService` wherever the application needs the signed-in profile:
+
+```csharp
+var currentUser = await currentUserService.GetCurrentUserAsync(cancellationToken);
+```
+
+`CurrentUser` uses the stable tenant ID and object ID as identity values. Email is resolved from Graph `mail`, Graph `userPrincipalName`, then the available username/email claim. If Graph is unavailable, the service logs a warning and returns the claim-based profile without Graph-only fields such as job title.
+
+Microsoft Identity Web stores user tokens in Redis instead of process memory. This keeps the MSAL account available when the application restarts and prevents an existing authentication cookie from producing `MsalUiRequiredException` with `ErrorCode: user_null`. Token-cache entries are encrypted with ASP.NET Core Data Protection before being written to Redis.
+
+### Run the complete stack with Docker Compose
+
+Copy `.env.example` to `.env`, then replace the placeholder with the Entra application client secret:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build -d
+docker compose ps
+```
+
+Open `http://localhost:8080`. Register these **Web** redirect URIs in the Entra app registration used by `AzureAd:ClientId`:
+
+- `http://localhost:8080/signin-oidc`
+- `http://localhost:8080/signout-callback-oidc`
+
+The Compose network resolves Redis at `redis:6379`. Redis isn't published to the host, and its append-only data is stored in the `redis-data` volume. The encrypted token cache's Data Protection key ring is stored in the `data-protection-keys` volume. Consequently, `docker compose down` followed by `docker compose up -d` retains both. Avoid `docker compose down --volumes` unless you intentionally want to delete the cached tokens and encryption keys.
+
+Useful commands:
+
+```powershell
+docker compose logs -f web
+docker compose exec redis redis-cli ping
+docker compose down
+```
+
+## TODO: production Redis and stale-session recovery
+
+- [ ] Provision a production Redis service and set `ConnectionStrings__Redis` in the hosting platform's secret store. Require TLS and authentication; don't commit its password or access key.
+- [ ] Give each environment a distinct `Redis__InstanceName`, such as `MyWebApp:Production:`, so development, staging, and production token caches never overlap.
+- [x] Persist ASP.NET Core Data Protection keys in the Compose `data-protection-keys` volume. For a multi-host production deployment, replace this local volume with a key store shared by every application instance.
+- [ ] Configure Redis persistence, availability, backups, network restrictions, and monitoring according to the hosting environment's recovery requirements.
+- [ ] Add a cookie-validation or HTTP challenge recovery path for the remaining cache-loss case. When Microsoft Identity Web reports `MicrosoftIdentityWebChallengeUserException`/`user_null`, reject the stale authentication cookie and start a fresh OpenID Connect sign-in. Don't attempt the challenge from an active Blazor SignalR circuit, where the HTTP response may already have started.
+- [ ] Test the recovery flow: sign in, load the Graph profile, restart the web application while Redis stays running, and confirm the profile still loads without another sign-in. Then deliberately flush only the test token-cache database and confirm the next full HTTP request reauthenticates instead of repeatedly logging `user_null`.
+
+For an already-stale local session, clear the localhost authentication cookies (or sign out), keep Redis running, restart the application, and sign in once. The new authorization-code exchange will populate Redis.
+
+The Tenant ID and Client ID belong in `appsettings.json`. Keep the client secret out of source control; use user secrets locally and the hosting platform's secure credential store in production. Register `https://localhost:7174/signin-oidc` and `https://localhost:7174/signout-callback-oidc` as Web redirect URIs in the Entra app registration.
 
 Run the tests with:
 
@@ -38,11 +103,11 @@ dotnet test tests/MyWebApp.UnitTests/MyWebApp.UnitTests.csproj
 | Change sidebar structure, width, or page layout | `Components/Layout/MainLayout.razor` |
 | Change sidebar brand and navigation styling | `Components/Layout/MainLayout.razor.css` |
 | Change sidebar account footer and sign-out styling | `Components/Layout/AuthenticationControls.razor` and `.razor.css` |
-| Change the login layout | `Components/Layout/LoginLayout.razor` and `.razor.css` |
 | Change a specific page | Its folder under `Components/Pages/<PageName>/` |
 | Change automatic menu discovery rules | `Navigation/NavigationService.cs` and `NavMenuAttribute.cs` |
 | Change application configuration validation | `Application/DependencyInjection.cs` |
 | Register databases, external clients, or provider implementations | `Infrastructure/DependencyInjection.cs` |
+| Change the current Microsoft user model or Graph profile mapping | `Application/Models/Authentication/CurrentUser.cs` and `Infrastructure/Authentication/MicrosoftCurrentUserService.cs` |
 | Add HTTP API endpoints | `Endpoints/` and the mapping call in `Program.cs` |
 | Change middleware or application startup | `Program.cs` |
 
@@ -74,7 +139,6 @@ Use this starting component:
 
 ```razor
 @page "/reports"
-@attribute [Authorize]
 @attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, Order = 10)]
 
 <PageTitle>Reports · SiS Workspace</PageTitle>
@@ -99,7 +163,17 @@ The navigation rules are:
 - Use `Order` to control placement; lower values appear first.
 - Route parameters are not supported for sidebar entries.
 - Omit `NavMenu` when a routable page should not appear in the sidebar.
-- Add `[AllowAnonymous]` only when the page must be accessible without login; otherwise use `[Authorize]`.
+- All Blazor pages are protected globally by the authorized Razor component endpoint. Add `[Authorize(Roles = "...")]` only when a page needs a stricter role requirement.
+- Sidebar items are filtered using the destination page's authorization metadata. A denied parent removes its complete navigation branch.
+
+To protect a feature folder and its nested pages with one policy, add an `_Imports.razor` file to that folder. For example, `Components/Pages/Settings/_Imports.razor` contains:
+
+```razor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "ViewSettings")]
+```
+
+The policy applies recursively to routed components in the folder, and the sidebar uses the same compiled metadata to hide the corresponding items from unauthorized users. Route authorization remains the security boundary; menu filtering only prevents users from seeing links they cannot open.
 
 Restart the application after adding or changing navigation metadata because the menu is discovered at startup.
 
@@ -115,7 +189,6 @@ Components/Pages/Settings/AuditLog/
 
 ```razor
 @page "/settings/audit-log"
-@attribute [Authorize]
 @attribute [NavMenu(
     "Audit log",
     Icons.Material.Filled.History,
@@ -177,7 +250,7 @@ For real features:
 6. Return intentional status codes such as `Ok`, `Created`, `NoContent`, `NotFound`, and `ValidationProblem`.
 7. Pass `CancellationToken` through asynchronous endpoint and service calls.
 
-Use `.RequireAuthorization()` for protected endpoint groups. Use `.AllowAnonymous()` only for endpoints that deliberately need public access, such as health probes.
+API endpoints are separate from the globally protected Blazor endpoint. Use `.RequireAuthorization()` for protected API groups and keep `.AllowAnonymous()` only on endpoints that deliberately need public access, such as health probes.
 
 ## Health-check API
 
@@ -246,11 +319,13 @@ Edit the variable values in `wwwroot/css/theme.css` to change the application co
 
 ## Production and Docker
 
-The Dockerfile uses .NET 10 images and publishes the application on port 8080. However, production startup intentionally fails until a real authentication provider is registered in `Infrastructure/DependencyInjection.cs`. Replace the development fake provider with the chosen production authentication integration before building a deployable container.
+The Dockerfile uses .NET 10 images and publishes the application on port 8080. Docker Compose supplies Redis and local persistent volumes. Supply the Entra configuration and a production credential through the hosting platform's secure configuration before deploying.
 
-Build the image after production authentication is configured:
+Build the image with:
 
 ```powershell
 docker build -f DOCKERFILE -t mywebapp .
 docker run --rm -p 8080:8080 mywebapp
 ```
+
+The standalone `docker run` example requires the Redis connection, Entra client secret, and Data Protection key path to be supplied separately. Prefer `docker compose up --build -d` for local container testing.

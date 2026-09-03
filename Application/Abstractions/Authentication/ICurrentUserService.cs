@@ -1,8 +1,9 @@
-using System.Security.Claims;
+using MyWebApp.Application.Models.Authentication;
 
 namespace MyWebApp.Application.Abstractions.Authentication;
 
 public interface ICurrentUserService
 {
-    Task<ClaimsPrincipal> GetUserAsync();
+    Task<CurrentUser?> GetCurrentUserAsync(
+        CancellationToken cancellationToken = default);
 }

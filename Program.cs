@@ -1,5 +1,6 @@
 using MyWebApp.Application;
 using MyWebApp.Components;
+using MyWebApp.Configurations;
 using MyWebApp.Endpoints;
 using MyWebApp.Infrastructure;
 using MyWebApp.Navigation;
@@ -16,19 +17,32 @@ builder.Logging.AddDebug();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
 builder.Services.AddMudServices();
 builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddInfrastructureServices(builder.Environment);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddSingleton(_ => new NavigationService(typeof(Program).Assembly));
+builder.Services.AddScoped<NavigationAuthorizationService>();
 
-if (builder.Environment.IsDevelopment())
+var applicationName = builder.Configuration[
+    $"{ApplicationOptions.SectionName}:{nameof(ApplicationOptions.Name)}"]
+    ?? throw new InvalidOperationException("Application name is required.");
+var dataProtection = builder.Services.AddDataProtection()
+    .SetApplicationName(applicationName);
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+
+if (string.IsNullOrWhiteSpace(dataProtectionKeysPath) &&
+    builder.Environment.IsDevelopment())
 {
-    builder.Services.AddDataProtection()
-        .SetApplicationName("MyWebApp.Development")
-        .PersistKeysToFileSystem(
-            new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys")));
+    dataProtectionKeysPath = Path.Combine(
+        builder.Environment.ContentRootPath,
+        ".data-protection-keys");
+}
+
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    dataProtection.PersistKeysToFileSystem(
+        new DirectoryInfo(dataProtectionKeysPath));
 }
 
 var app = builder.Build();
@@ -49,8 +63,11 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapHealthEndpoints();
+app.MapRazorPages();
+app.MapControllers();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .RequireAuthorization();
 
 app.Run();
 

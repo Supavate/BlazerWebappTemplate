@@ -5,9 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>MyWebApp-Entra-7ad34dd3-62a0-4c10-9200-44b8a891faef</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.14.2" />
+    <PackageReference Include="Microsoft.Identity.Web.GraphServiceClient" Version="4.14.2" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="4.14.2" />
     <PackageReference Include="MudBlazor" Version="9.9.0" />
   </ItemGroup>
 
