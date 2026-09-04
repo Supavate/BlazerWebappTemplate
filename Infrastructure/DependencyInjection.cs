@@ -3,7 +3,10 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.TokenCacheProviders.Distributed;
 using Microsoft.Identity.Web.UI;
 using MyWebApp.Application.Abstractions.Authentication;
+using MyWebApp.Application.Abstractions.Reports;
+using MyWebApp.Configurations;
 using MyWebApp.Infrastructure.Authentication;
+using MyWebApp.Infrastructure.Reports;
 
 namespace MyWebApp.Infrastructure;
 
@@ -39,6 +42,23 @@ public static class DependencyInjection
 
         services.AddScoped<ICurrentUserService, MicrosoftCurrentUserService>();
 
+        RegisterReportApi(services, configuration);
+
         return services;
+    }
+
+    private static void RegisterReportApi(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<ReportsOptions>()
+            .Bind(configuration.GetSection(ReportsOptions.SectionName))
+            .ValidateOnStart();
+
+        services.AddScoped<ReportMockService>();
+        services.AddScoped<ISalesPeriodCatalog>(
+            serviceProvider => serviceProvider.GetRequiredService<ReportMockService>());
+        services.AddScoped<ISalesReportService>(
+            serviceProvider => serviceProvider.GetRequiredService<ReportMockService>());
     }
 }

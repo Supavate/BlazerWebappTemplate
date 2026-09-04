@@ -1,0 +1,32 @@
+.report-period-card {
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-theme);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    color: var(--primary-theme);
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    text-decoration: none;
+    transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.report-period-card:hover {
+    box-shadow: var(--shadow-md);
+    color: var(--accent-hover-theme);
+    transform: translateY(-2px);
+}
+
+.report-period-icon {
+    color: var(--accent-theme);
+}
+
+.report-period-arrow {
+    color: var(--secondary-text);
+    margin-left: auto;
+}
+
+.report-period-title {
+    font-weight: 700;
+}

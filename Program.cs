@@ -23,6 +23,7 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddSingleton(_ => new NavigationService(typeof(Program).Assembly));
 builder.Services.AddScoped<NavigationAuthorizationService>();
+builder.Services.AddScoped<NavigationMerger>();
 
 var applicationName = builder.Configuration[
     $"{ApplicationOptions.SectionName}:{nameof(ApplicationOptions.Name)}"]

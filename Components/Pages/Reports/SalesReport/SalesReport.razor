@@ -1,0 +1,69 @@
+@page "/reports/{PeriodKey}"
+@inject ISalesReportService ReportService
+
+<PageTitle>@(_report?.Title ?? "Sales report") · SiS Workspace</PageTitle>
+
+<section class="portal-page">
+    @if (_loading)
+    {
+        <div class="empty-state"><p>Loading report…</p></div>
+    }
+    else if (_report is null)
+    {
+        <header class="portal-page-header">
+            <div class="portal-page-header-copy">
+                <p class="portal-eyebrow">Sales reports</p>
+                <h1 class="portal-page-title">Report not found</h1>
+                <p class="portal-page-subtitle">
+                    No sales report exists for the period "@PeriodKey". Use the sidebar to pick an available month.
+                </p>
+            </div>
+        </header>
+        <div class="portal-alert danger">
+            <strong>Missing period</strong>
+            <span>The report API does not know the period "@PeriodKey".</span>
+        </div>
+    }
+    else
+    {
+        <header class="portal-page-header">
+            <div class="portal-page-header-copy">
+                <p class="portal-eyebrow">Sales reports</p>
+                <h1 class="portal-page-title">@_report.Title</h1>
+                <p class="portal-page-subtitle">
+                    This shared template renders the selected period. Report content loads here from the API.
+                </p>
+            </div>
+            <span class="status-chip success">@_report.Key</span>
+        </header>
+
+        <div class="empty-state">
+            <MudIcon Icon="@Icons.Material.Filled.InsertChart" Size="@Size.Large" />
+            <h2>@_report.Title</h2>
+            <p>The period's sales content will render here from the API data.</p>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string? PeriodKey { get; set; }
+
+    private SalesPeriodReport? _report;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _report = null;
+
+        try
+        {
+            _report = await ReportService.GetReportAsync(PeriodKey ?? string.Empty);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

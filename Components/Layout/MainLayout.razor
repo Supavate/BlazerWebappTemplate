@@ -1,5 +1,5 @@
 @inherits LayoutComponentBase
-@inject NavigationService Navigation
+@inject NavigationMerger NavigationMerger
 @inject NavigationAuthorizationService NavigationAuthorization
 @inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configurations.ApplicationOptions> ApplicationOptions
 
@@ -68,7 +68,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var items = await NavigationMerger.GetItemsAsync();
         _navigationItems = await NavigationAuthorization
-            .GetAuthorizedItemsAsync(Navigation.Items);
+            .GetAuthorizedItemsAsync(items);
     }
 }
