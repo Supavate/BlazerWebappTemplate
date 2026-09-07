@@ -4,10 +4,8 @@ using MyWebApp.Application.Models.Reports;
 namespace MyWebApp.Infrastructure.Reports;
 
 /// <summary>
-/// In-memory mock for the report API. The typed <see cref="ReportApiClient"/>
-/// consumes this data over HTTP through the mock endpoints. To connect a real
-/// SAP gateway later, keep the JSON contract and point 'Reports:ApiBaseUrl' at
-/// it — no page or navigation code has to change.
+/// In-memory data used by the mock report services. Replace it with data from
+/// the production report API without changing page or navigation code.
 /// </summary>
 public static class MockReportDataSource
 {

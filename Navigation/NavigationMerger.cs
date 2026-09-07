@@ -21,6 +21,13 @@ public sealed class NavigationMerger(
 
         foreach (var (catalogKey, entry) in options.Value.Catalogs)
         {
+            var parentRoute = NavigationRouteHelper.Normalize(entry.ParentRoute);
+            if (!ContainsRoute(items, parentRoute))
+            {
+                throw new InvalidOperationException(
+                    $"Submenu catalog '{catalogKey}' references missing parent route '{parentRoute}'.");
+            }
+
             var provider = factory.GetProvider(catalogKey);
             var periods = await provider.GetItemsAsync(cancellationToken);
             if (periods.Count == 0)
@@ -28,7 +35,6 @@ public sealed class NavigationMerger(
                 continue;
             }
 
-            var parentRoute = NormalizeRoute(entry.ParentRoute);
             ValidateEntries(catalogKey, periods);
 
             var dynamicItems = periods
@@ -37,6 +43,8 @@ public sealed class NavigationMerger(
                     string.IsNullOrWhiteSpace(period.Icon) ? entry.Icon : period.Icon,
                     $"{parentRoute.TrimEnd('/')}/{Uri.EscapeDataString(period.Key.Trim())}",
                     0,
+                    // Providers return entries already filtered for the current user.
+                    // Route/API authorization remains the security boundary.
                     [],
                     []))
                 .ToArray();
@@ -49,6 +57,13 @@ public sealed class NavigationMerger(
         return items;
     }
 
+    private static bool ContainsRoute(NavItem item, string route) =>
+        string.Equals(item.Route, route, StringComparison.OrdinalIgnoreCase) ||
+        item.Children.Any(child => ContainsRoute(child, route));
+
+    private static bool ContainsRoute(IEnumerable<NavItem> items, string route) =>
+        items.Any(item => ContainsRoute(item, route));
+
     private static NavItem AppendToParent(
         NavItem item,
         string parentRoute,
@@ -56,7 +71,10 @@ public sealed class NavigationMerger(
     {
         if (string.Equals(item.Route, parentRoute, StringComparison.OrdinalIgnoreCase))
         {
-            return item with { Children = item.Children.Concat(dynamicItems).ToArray() };
+            return item with
+            {
+                Children = item.Children.Concat(dynamicItems).ToArray()
+            };
         }
 
         if (!item.HasChildren)
@@ -101,16 +119,5 @@ public sealed class NavigationMerger(
             throw new InvalidOperationException(
                 $"Submenu catalog '{catalogKey}' contains duplicate key '{duplicateKey.Key}'.");
         }
-    }
-
-    private static string NormalizeRoute(string route)
-    {
-        var trimmed = route.Trim();
-        if (trimmed.Length == 0 || trimmed == "/")
-        {
-            return "/";
-        }
-
-        return $"/{trimmed.Trim('/')}";
     }
 }

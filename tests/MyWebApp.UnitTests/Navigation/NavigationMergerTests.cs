@@ -83,6 +83,21 @@ public sealed class NavigationMergerTests
     }
 
     [Fact]
+    public async Task RejectsMissingConfiguredParentEvenWhenProviderReturnsNoItems()
+    {
+        var navigation = new NavigationService(typeof(Program).Assembly);
+        var options = CreateOptions(("MissingParent", typeof(FakeSubmenuProvider), "/missing"));
+        var provider = new FakeSubmenuProvider();
+        var merger = CreateMerger(navigation, options, (typeof(FakeSubmenuProvider), provider));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => merger.GetItemsAsync());
+
+        Assert.Contains("MissingParent", exception.Message);
+        Assert.Contains("/missing", exception.Message);
+    }
+
+    [Fact]
     public async Task AppendsGeneratedChildrenAfterStaticChildren()
     {
         var navigation = new NavigationService(typeof(Program).Assembly);
@@ -98,6 +113,23 @@ public sealed class NavigationMergerTests
             settings.Children,
             users => Assert.Equal("/settings/users", users.Route),
             audit => Assert.Equal("/settings/audit", audit.Route));
+    }
+
+    [Fact]
+    public async Task GeneratedChildrenDoNotDuplicateParentAuthorizationData()
+    {
+        var navigation = new NavigationService(typeof(Program).Assembly);
+        var options = CreateOptions(("SettingsData", typeof(FakeSubmenuProvider), "/settings"));
+        var provider = new FakeSubmenuProvider(
+            new TestSubmenuEntry("audit", "Audit", "history"));
+        var merger = CreateMerger(navigation, options, (typeof(FakeSubmenuProvider), provider));
+
+        var items = await merger.GetItemsAsync();
+
+        var settings = Assert.Single(items, item => item.Route == "/settings");
+        var generated = Assert.Single(settings.Children, item => item.Route == "/settings/audit");
+        Assert.NotEmpty(settings.AuthorizationData);
+        Assert.Empty(generated.AuthorizationData);
     }
 
     [Fact]

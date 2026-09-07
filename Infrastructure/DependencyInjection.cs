@@ -53,10 +53,6 @@ public static class DependencyInjection
         IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddOptions<ReportsOptions>()
-            .Bind(configuration.GetSection(ReportsOptions.SectionName))
-            .ValidateOnStart();
-
         services.AddScoped<ReportMockService>();
         services.AddScoped<ISalesPeriodCatalog>(
             serviceProvider => serviceProvider.GetRequiredService<ReportMockService>());

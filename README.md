@@ -10,11 +10,7 @@ Requirements:
 - A trusted ASP.NET Core development certificate for local HTTPS
 - Redis 6 or later
 
-Start a local Redis container:
-
-```powershell
-docker run --name mywebapp-redis -p 6379:6379 -d redis:7-alpine
-```
+Start Redis locally and make sure it is reachable at `localhost:6379`.
 
 From the project directory:
 
@@ -47,36 +43,11 @@ var currentUser = await currentUserService.GetCurrentUserAsync(cancellationToken
 
 Microsoft Identity Web stores user tokens in Redis instead of process memory. This keeps the MSAL account available when the application restarts and prevents an existing authentication cookie from producing `MsalUiRequiredException` with `ErrorCode: user_null`. Token-cache entries are encrypted with ASP.NET Core Data Protection before being written to Redis.
 
-### Run the complete stack with Docker Compose
-
-Copy `.env.example` to `.env`, then replace the placeholder with the Entra application client secret:
-
-```powershell
-Copy-Item .env.example .env
-docker compose up --build -d
-docker compose ps
-```
-
-Open `http://localhost:8080`. Register these **Web** redirect URIs in the Entra app registration used by `AzureAd:ClientId`:
-
-- `http://localhost:8080/signin-oidc`
-- `http://localhost:8080/signout-callback-oidc`
-
-The Compose network resolves Redis at `redis:6379`. Redis isn't published to the host, and its append-only data is stored in the `redis-data` volume. The encrypted token cache's Data Protection key ring is stored in the `data-protection-keys` volume. Consequently, `docker compose down` followed by `docker compose up -d` retains both. Avoid `docker compose down --volumes` unless you intentionally want to delete the cached tokens and encryption keys.
-
-Useful commands:
-
-```powershell
-docker compose logs -f web
-docker compose exec redis redis-cli ping
-docker compose down
-```
-
 ## TODO: production Redis and stale-session recovery
 
 - [ ] Provision a production Redis service and set `ConnectionStrings__Redis` in the hosting platform's secret store. Require TLS and authentication; don't commit its password or access key.
 - [ ] Give each environment a distinct `Redis__InstanceName`, such as `MyWebApp:Production:`, so development, staging, and production token caches never overlap.
-- [x] Persist ASP.NET Core Data Protection keys in the Compose `data-protection-keys` volume. For a multi-host production deployment, replace this local volume with a key store shared by every application instance.
+- [ ] Persist ASP.NET Core Data Protection keys in a durable key store shared by every application instance.
 - [ ] Configure Redis persistence, availability, backups, network restrictions, and monitoring according to the hosting environment's recovery requirements.
 - [ ] Add a cookie-validation or HTTP challenge recovery path for the remaining cache-loss case. When Microsoft Identity Web reports `MicrosoftIdentityWebChallengeUserException`/`user_null`, reject the stale authentication cookie and start a fresh OpenID Connect sign-in. Don't attempt the challenge from an active Blazor SignalR circuit, where the HTTP response may already have started.
 - [ ] Test the recovery flow: sign in, load the Graph profile, restart the web application while Redis stays running, and confirm the profile still loads without another sign-in. Then deliberately flush only the test token-cache database and confirm the next full HTTP request reauthenticates instead of repeatedly logging `user_null`.
@@ -139,7 +110,7 @@ Use this starting component:
 
 ```razor
 @page "/reports"
-@attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, Order = 10)]
+@attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, 10)]
 
 <PageTitle>Reports · SiS Workspace</PageTitle>
 
@@ -192,8 +163,8 @@ Components/Pages/Settings/AuditLog/
 @attribute [NavMenu(
     "Audit log",
     Icons.Material.Filled.History,
-    Parent = "/settings",
-    Order = 20)]
+    20,
+    Parent = "/settings")]
 
 <PageTitle>Audit log · SiS Workspace</PageTitle>
 
@@ -316,16 +287,3 @@ Use existing CSS variables instead of hard-coded colors or spacing:
 ```
 
 Edit the variable values in `wwwroot/css/theme.css` to change the application consistently. Reusable structural classes belong in `wwwroot/css/utilities.css`; page-only styles belong in that page's scoped `.razor.css` file.
-
-## Production and Docker
-
-The Dockerfile uses .NET 10 images and publishes the application on port 8080. Docker Compose supplies Redis and local persistent volumes. Supply the Entra configuration and a production credential through the hosting platform's secure configuration before deploying.
-
-Build the image with:
-
-```powershell
-docker build -f DOCKERFILE -t mywebapp .
-docker run --rm -p 8080:8080 mywebapp
-```
-
-The standalone `docker run` example requires the Redis connection, Entra client secret, and Data Protection key path to be supplied separately. Prefer `docker compose up --build -d` for local container testing.

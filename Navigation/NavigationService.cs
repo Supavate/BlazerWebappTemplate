@@ -92,7 +92,7 @@ public sealed class NavigationService
                 $"Navigation component '{componentType.FullName}' must declare exactly one @page route.");
         }
 
-        var route = NormalizeRoute(routes[0].Template);
+        var route = NavigationRouteHelper.Normalize(routes[0].Template);
         if (route.Contains('{', StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -108,19 +108,8 @@ public sealed class NavigationService
             authorizationData);
     }
 
-    private static string NormalizeRoute(string route)
-    {
-        var trimmed = route.Trim();
-        if (trimmed.Length == 0 || trimmed == "/")
-        {
-            return "/";
-        }
-
-        return $"/{trimmed.Trim('/')}";
-    }
-
     private static string? NormalizeOptionalRoute(string? route) =>
-        string.IsNullOrWhiteSpace(route) ? null : NormalizeRoute(route);
+        string.IsNullOrWhiteSpace(route) ? null : NavigationRouteHelper.Normalize(route);
 
     private static void ValidateNoCycles(IEnumerable<MutableNavNode> pages)
     {
