@@ -1,0 +1,28 @@
+<MudMainContent Class="portal-main-content">
+    <LoggingErrorBoundary>
+        <ChildContent>
+            <main class="main-content" id="main-content">
+                @ChildContent
+            </main>
+        </ChildContent>
+        <ErrorContent Context="error">
+            <section class="portal-page compact-page">
+                <div class="portal-alert danger">
+                    <strong>Something went wrong.</strong>
+                    <span>Please reload the page. Technical details were not displayed.</span>
+                </div>
+            </section>
+        </ErrorContent>
+    </LoggingErrorBoundary>
+</MudMainContent>
+
+<div id="blazor-error-ui" data-nosnippet>
+    The connection was interrupted.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">ร—</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

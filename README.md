@@ -71,8 +71,8 @@ dotnet test tests/MyWebApp.UnitTests/MyWebApp.UnitTests.csproj
 | Change colors, spacing, typography, radii, or shadows | `wwwroot/css/theme.css` |
 | Change reusable page utilities, cards, tables, and status styles | `wwwroot/css/utilities.css` |
 | Change global HTML/body behavior | `wwwroot/app.css` |
-| Change sidebar structure, width, or page layout | `Components/Layout/MainLayout.razor` |
-| Change sidebar brand and navigation styling | `Components/Layout/MainLayout.razor.css` |
+| Change sidebar structure, responsive behavior, or navigation styling | `Components/Layout/AppSidebar.razor` and `.razor.css` |
+| Change the page-content gutter, width, or error presentation | `Components/Layout/AppDocument.razor` and `.razor.css` |
 | Change sidebar account footer and sign-out styling | `Components/Layout/AuthenticationControls.razor` and `.razor.css` |
 | Change a specific page | Its folder under `Components/Pages/<PageName>/` |
 | Change automatic menu discovery rules | `Navigation/NavigationService.cs` and `NavMenuAttribute.cs` |
