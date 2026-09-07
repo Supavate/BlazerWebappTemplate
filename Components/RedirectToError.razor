@@ -1,0 +1,24 @@
+@inject NavigationManager Navigation
+@inject ILogger<RedirectToError> Logger
+
+@code {
+    [Parameter]
+    public int StatusCode { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var originalPath = Navigation.ToAbsoluteUri(Navigation.Uri).AbsolutePath;
+        var destination = $"/error/{StatusCode}";
+
+        if (StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
+        {
+            Logger.LogWarning(
+                "Authorization failed with {StatusCode} for {RequestPath}. Redirecting to {ErrorPath}",
+                StatusCode,
+                originalPath,
+                destination);
+        }
+
+        Navigation.NavigateTo(destination, replace: true);
+    }
+}

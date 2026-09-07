@@ -13,17 +13,28 @@ public sealed class NavigationMergerTests
     public async Task AppendsDataDrivenPeriodsUnderConfiguredParent()
     {
         var navigation = new NavigationService(typeof(Program).Assembly);
-        var catalog = new FakePeriodCatalog(
-        [
-            new SalesPeriodNavEntry("january", "Sales January", Icons.Material.Filled.CalendarMonth, 2),
-            new SalesPeriodNavEntry("february", "Sales February", Icons.Material.Filled.CalendarMonth, 1)
-        ]);
-        var options = Options.Create(new ReportApiOptions
+        var options = Options.Create(new SubmenuCatalogsOptions
         {
-            ParentRoute = "/reports"
+            Catalogs = new Dictionary<string, SubmenuCatalogEntry>
+            {
+                ["SalesReports"] = new SubmenuCatalogEntry
+                {
+                    ProviderType = typeof(FakeSubmenuProvider).AssemblyQualifiedName!,
+                    ParentRoute = "/reports",
+                    Icon = "calendar_month"
+                }
+            }
         });
 
-        var merger = new NavigationMerger(navigation, catalog, options);
+        var provider = new FakeSubmenuProvider(
+            new SalesPeriodNavEntry("january", "Sales January", Icons.Material.Filled.CalendarMonth, 2),
+            new SalesPeriodNavEntry("february", "Sales February", Icons.Material.Filled.CalendarMonth, 1));
+
+        var factory = new SubmenuProviderFactory(
+            new FakeServiceProvider((typeof(FakeSubmenuProvider), provider)),
+            options);
+
+        var merger = new NavigationMerger(navigation, factory, options);
 
         var items = await merger.GetItemsAsync();
 
@@ -46,11 +57,24 @@ public sealed class NavigationMergerTests
     public async Task KeepsStaticTreeWhenCatalogReturnsNoPeriods()
     {
         var navigation = new NavigationService(typeof(Program).Assembly);
-        var catalog = new FakePeriodCatalog([]);
-        var merger = new NavigationMerger(
-            navigation,
-            catalog,
-            Options.Create(new ReportApiOptions()));
+        var options = Options.Create(new SubmenuCatalogsOptions
+        {
+            Catalogs = new Dictionary<string, SubmenuCatalogEntry>
+            {
+                ["SalesReports"] = new SubmenuCatalogEntry
+                {
+                    ProviderType = typeof(FakeSubmenuProvider).AssemblyQualifiedName!,
+                    ParentRoute = "/reports",
+                    Icon = "calendar_month"
+                }
+            }
+        });
+
+        var provider = new FakeSubmenuProvider();
+        var factory = new SubmenuProviderFactory(
+            new FakeServiceProvider((typeof(FakeSubmenuProvider), provider)),
+            options);
+        var merger = new NavigationMerger(navigation, factory, options);
 
         var items = await merger.GetItemsAsync();
 
@@ -58,11 +82,24 @@ public sealed class NavigationMergerTests
         Assert.Empty(reportsNode.Children);
     }
 
-    private sealed class FakePeriodCatalog(
-        IReadOnlyList<SalesPeriodNavEntry> periods) : ISalesPeriodCatalog
+    private sealed class FakeSubmenuProvider(
+        params ISubmenuEntry[] entries) : ISubmenuProvider
     {
-        public Task<IReadOnlyList<SalesPeriodNavEntry>> GetPeriodsAsync(
+        public Task<IReadOnlyList<ISubmenuEntry>> GetItemsAsync(
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(periods);
+            Task.FromResult<IReadOnlyList<ISubmenuEntry>>(entries);
+    }
+
+    private sealed class FakeServiceProvider : IServiceProvider
+    {
+        private readonly Dictionary<Type, object> _services;
+
+        public FakeServiceProvider(params (Type type, object instance)[] services)
+        {
+            _services = services.ToDictionary(service => service.type, service => service.instance);
+        }
+
+        public object? GetService(Type serviceType) =>
+            _services.TryGetValue(serviceType, out var service) ? service : null;
     }
 }

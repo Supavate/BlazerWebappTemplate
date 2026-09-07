@@ -17,6 +17,19 @@ public static class AppTheme
     public const string Warning = "#b45309";
     public const string Danger = "#b91c1c";
 
+    // Data-visualization colors are intentionally independent of the UI palette.
+    public const string ChartOrange = "#f97316";
+    public const string ChartBlue = "#2563eb";
+    public const string ChartTeal = "#0d9488";
+    public const string ChartGold = "#d97706";
+    public const string ChartRemainder = "#dfe5ef";
+
+    public static string[] QuarterDonutPalette =>
+        [ChartOrange, ChartRemainder];
+
+    public static string[] TransactionDonutPalette =>
+        [ChartOrange, ChartBlue, ChartTeal, ChartGold, ChartRemainder];
+
     public static MudTheme Theme { get; } = new()
     {
         PaletteLight = new PaletteLight

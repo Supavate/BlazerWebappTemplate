@@ -7,6 +7,7 @@ using MyWebApp.Application.Abstractions.Reports;
 using MyWebApp.Configurations;
 using MyWebApp.Infrastructure.Authentication;
 using MyWebApp.Infrastructure.Reports;
+using MyWebApp.Navigation;
 
 namespace MyWebApp.Infrastructure;
 
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, MicrosoftCurrentUserService>();
 
         RegisterReportApi(services, configuration);
+        RegisterSubmenuProviders(services, configuration);
 
         return services;
     }
@@ -60,5 +62,16 @@ public static class DependencyInjection
             serviceProvider => serviceProvider.GetRequiredService<ReportMockService>());
         services.AddScoped<ISalesReportService>(
             serviceProvider => serviceProvider.GetRequiredService<ReportMockService>());
+    }
+
+    private static void RegisterSubmenuProviders(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<SubmenuCatalogsOptions>()
+            .Bind(configuration.GetSection(SubmenuCatalogsOptions.SectionName))
+            .ValidateOnStart();
+
+        services.AddScoped<SubmenuProviderFactory>();
     }
 }

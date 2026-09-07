@@ -5,43 +5,49 @@ using MyWebApp.Configurations;
 namespace MyWebApp.Navigation;
 
 /// <summary>
-/// Combines the statically discovered <see cref="NavItem"/> tree with
-/// data-driven items produced by <see cref="ISalesPeriodCatalog"/>. Each
-/// period becomes a sidebar entry under the configured parent route, and all
-/// entries point at the shared report template page.
+/// Combines the statically discovered NavItem tree with data-driven items
+/// produced by all configured <see cref="ISubmenuProvider"/> instances.
 /// </summary>
 public sealed class NavigationMerger(
     NavigationService navigationService,
-    ISalesPeriodCatalog periodCatalog,
-    IOptions<ReportsOptions> options)
+    SubmenuProviderFactory factory,
+    IOptions<SubmenuCatalogsOptions> options)
 {
     public async Task<IReadOnlyList<NavItem>> GetItemsAsync(
         CancellationToken cancellationToken = default)
     {
-        var periods = await periodCatalog.GetPeriodsAsync(cancellationToken);
-        if (periods.Count == 0)
+        var items = navigationService.Items;
+
+        foreach (var (catalogKey, entry) in options.Value.Catalogs)
         {
-            return navigationService.Items;
+            var provider = factory.GetProvider(catalogKey);
+            var periods = await provider.GetItemsAsync(cancellationToken);
+            if (periods.Count == 0)
+            {
+                continue;
+            }
+
+            var parentRoute = NormalizeRoute(entry.ParentRoute);
+            var dynamicItems = periods
+                .OrderBy(period => period.Order)
+                .ThenBy(period => period.Title, StringComparer.OrdinalIgnoreCase)
+                .Select(period => new NavItem(
+                    period.Title.Trim(),
+                    string.IsNullOrWhiteSpace(period.Icon) ? entry.Icon : period.Icon,
+                    $"{parentRoute}/{Uri.EscapeDataString(period.Key)}",
+                    period.Order,
+                    [],
+                    []))
+                .ToArray();
+
+            items = items
+                .Select(item => item.Route == parentRoute
+                    ? item with { Children = item.Children.Concat(dynamicItems).ToArray() }
+                    : item)
+                .ToArray();
         }
 
-        var parentRoute = NormalizeRoute(options.Value.ParentRoute);
-        var dynamicItems = periods
-            .OrderBy(period => period.Order)
-            .ThenBy(period => period.Title, StringComparer.OrdinalIgnoreCase)
-            .Select(period => new NavItem(
-                period.Title.Trim(),
-                string.IsNullOrWhiteSpace(period.Icon) ? options.Value.Icon : period.Icon,
-                $"{parentRoute}/{Uri.EscapeDataString(period.Key)}",
-                period.Order,
-                [],
-                []))
-            .ToArray();
-
-        return navigationService.Items
-            .Select(item => item.Route == parentRoute
-                ? item with { Children = item.Children.Concat(dynamicItems).ToArray() }
-                : item)
-            .ToArray();
+        return items;
     }
 
     private static string NormalizeRoute(string route)

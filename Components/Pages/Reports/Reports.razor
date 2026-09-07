@@ -50,7 +50,9 @@
     {
         try
         {
-            _periods = await PeriodCatalog.GetPeriodsAsync();
+            _periods = (await PeriodCatalog.GetItemsAsync())
+                .Cast<SalesPeriodNavEntry>()
+                .ToList();
         }
         finally
         {

@@ -10,6 +10,12 @@ namespace MyWebApp.Infrastructure.Reports;
 /// </summary>
 public sealed class ReportMockService : ISalesPeriodCatalog, ISalesReportService
 {
+    public Task<IReadOnlyList<ISubmenuEntry>> GetItemsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<ISubmenuEntry>>(MockReportDataSource.Periods);
+    }
+
     public Task<IReadOnlyList<SalesPeriodNavEntry>> GetPeriodsAsync(
         CancellationToken cancellationToken = default)
     {

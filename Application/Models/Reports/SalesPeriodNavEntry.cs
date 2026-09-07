@@ -4,4 +4,4 @@ public sealed record SalesPeriodNavEntry(
     string Key,
     string Title,
     string Icon,
-    int Order);
+    int Order) : ISubmenuEntry;

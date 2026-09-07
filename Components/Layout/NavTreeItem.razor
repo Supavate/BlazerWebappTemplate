@@ -3,7 +3,7 @@
 
 @if (Item.HasChildren)
 {
-    <div class="nav-group-hover-region"
+    <div class="nav-group-hover-region @(_expanded ? "expanded" : null)"
          @onmouseenter="Expand"
          @onmouseleave="CollapseUnlessSelected">
         <MudNavLink Href="@Item.Route"
@@ -18,15 +18,16 @@
             </span>
         </MudNavLink>
 
-        @if (_expanded)
-        {
+        <div class="nav-submenu-shell"
+             aria-hidden="@(!_expanded)"
+             inert="@(!_expanded)">
             <div class="nav-submenu">
                 @foreach (var child in Item.Children)
                 {
                     <NavTreeItem Item="child" />
                 }
             </div>
-        }
+        </div>
     </div>
 }
 else

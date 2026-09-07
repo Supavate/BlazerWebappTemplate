@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationMerger NavigationMerger
 @inject NavigationAuthorizationService NavigationAuthorization
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configurations.ApplicationOptions> ApplicationOptions
 
 <MudThemeProvider Theme="@AppTheme.Theme" />
@@ -38,7 +40,7 @@
     </MudDrawer>
 
     <MudMainContent Class="portal-main-content">
-        <ErrorBoundary>
+        <LoggingErrorBoundary>
             <ChildContent>
                 <main class="main-content" id="main-content">
                     @Body
@@ -52,7 +54,7 @@
                     </div>
                 </section>
             </ErrorContent>
-        </ErrorBoundary>
+        </LoggingErrorBoundary>
     </MudMainContent>
 </MudLayout>
 
@@ -68,8 +70,29 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationStateChanged;
+        await RefreshNavigationAsync();
+    }
+
+    private async Task RefreshNavigationAsync()
+    {
         var items = await NavigationMerger.GetItemsAsync();
         _navigationItems = await NavigationAuthorization
             .GetAuthorizedItemsAsync(items);
+    }
+
+    private void HandleAuthenticationStateChanged(
+        Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> authenticationStateTask)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshNavigationAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationStateChanged;
     }
 }

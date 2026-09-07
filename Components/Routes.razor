@@ -1,6 +1,20 @@
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <Authorizing>
+                <section class="portal-page compact-page">
+                    <div class="empty-state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Tertiary" />
+                        <p>Checking access…</p>
+                    </div>
+                </section>
+            </Authorizing>
+            <NotAuthorized Context="authenticationState">
+                <RedirectToError StatusCode="@(authenticationState.User.Identity?.IsAuthenticated == true
+                                                  ? StatusCodes.Status403Forbidden
+                                                  : StatusCodes.Status401Unauthorized)" />
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
