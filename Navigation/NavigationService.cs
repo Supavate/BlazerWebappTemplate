@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 
 namespace MyWebApp.Navigation;
@@ -20,10 +21,18 @@ public sealed class NavigationService
             {
                 Type = type.AsType(),
                 Menu = type.GetCustomAttribute<NavMenuAttribute>(),
-                Routes = type.GetCustomAttributes<RouteAttribute>().ToArray()
+                Routes = type.GetCustomAttributes<RouteAttribute>().ToArray(),
+                AuthorizationData = type
+                    .GetCustomAttributes<AuthorizeAttribute>(inherit: true)
+                    .Cast<IAuthorizeData>()
+                    .ToArray()
             })
             .Where(page => page.Menu is not null)
-            .Select(page => CreateNode(page.Type, page.Menu!, page.Routes))
+            .Select(page => CreateNode(
+                page.Type,
+                page.Menu!,
+                page.Routes,
+                page.AuthorizationData))
             .ToArray();
 
         var duplicateRoute = pages
@@ -62,7 +71,8 @@ public sealed class NavigationService
     private static MutableNavNode CreateNode(
         Type componentType,
         NavMenuAttribute menu,
-        RouteAttribute[] routes)
+        RouteAttribute[] routes,
+        IReadOnlyList<IAuthorizeData> authorizationData)
     {
         if (string.IsNullOrWhiteSpace(menu.Title))
         {
@@ -82,7 +92,7 @@ public sealed class NavigationService
                 $"Navigation component '{componentType.FullName}' must declare exactly one @page route.");
         }
 
-        var route = NormalizeRoute(routes[0].Template);
+        var route = NavigationRouteHelper.Normalize(routes[0].Template);
         if (route.Contains('{', StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -94,22 +104,12 @@ public sealed class NavigationService
             menu.Icon,
             route,
             NormalizeOptionalRoute(menu.Parent),
-            menu.Order);
-    }
-
-    private static string NormalizeRoute(string route)
-    {
-        var trimmed = route.Trim();
-        if (trimmed.Length == 0 || trimmed == "/")
-        {
-            return "/";
-        }
-
-        return $"/{trimmed.Trim('/')}";
+            menu.Order,
+            authorizationData);
     }
 
     private static string? NormalizeOptionalRoute(string? route) =>
-        string.IsNullOrWhiteSpace(route) ? null : NormalizeRoute(route);
+        string.IsNullOrWhiteSpace(route) ? null : NavigationRouteHelper.Normalize(route);
 
     private static void ValidateNoCycles(IEnumerable<MutableNavNode> pages)
     {
@@ -151,6 +151,7 @@ public sealed class NavigationService
             page.Icon,
             page.Route,
             page.Order,
+            page.AuthorizationData,
             page.Children
                 .OrderBy(child => child.Order)
                 .ThenBy(child => child.Title, StringComparer.OrdinalIgnoreCase)
@@ -162,13 +163,15 @@ public sealed class NavigationService
         string icon,
         string route,
         string? parent,
-        int order)
+        int order,
+        IReadOnlyList<IAuthorizeData> authorizationData)
     {
         public string Title { get; } = title;
         public string Icon { get; } = icon;
         public string Route { get; } = route;
         public string? Parent { get; } = parent;
         public int Order { get; } = order;
+        public IReadOnlyList<IAuthorizeData> AuthorizationData { get; } = authorizationData;
         public List<MutableNavNode> Children { get; } = [];
     }
 

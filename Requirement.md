@@ -13,7 +13,7 @@ Build a reusable **Blazor Server** web application template that serves as a sta
 | Framework | ASP.NET Core Blazor (.NET 10) |
 | Render Mode | Interactive Server (`--interactivity Server`) |
 | UI Component Library | MudBlazor |
-| Authentication | Microsoft Entra ID (Azure AD) SSO — **start with fake/dummy auth provider, swap to real SSO later** |
+| Authentication | Microsoft Entra ID (Azure AD) organizational SSO using `Microsoft.Identity.Web` |
 | Styling | CSS custom properties (design tokens) + MudBlazor theme, mapped together |
 | Target Platform | Desktop web only (no mobile responsiveness required for now) |
 | IDE | Visual Studio / VS Code |
@@ -24,11 +24,11 @@ Build a reusable **Blazor Server** web application template that serves as a sta
 
 ### 3.1 Authentication
 
-- App must support **Microsoft SSO login/logout** via Azure AD (Entra ID), using `Microsoft.Identity.Web`.
-- For POC/dev purposes, implement a **fake authentication provider** (`FakeAuthStateProvider` using `AuthenticationStateProvider`) with dummy Login/Logout buttons that simulate an authenticated user (name, email, role claims).
-- Fake auth must be a **drop-in placeholder** — swapping to real SSO later should require **no changes** to page-level `[Authorize]` attributes, `AuthorizeView` usage, or layout code — only swap the provider registration in `Program.cs` and the login/logout button targets.
-- Support role claims (e.g., "User", "Admin") in the fake provider to enable future role-based menu/page visibility testing.
-- Protect routes using `[Authorize]` attribute per page, with a global fallback via `AuthorizeRouteView` in `Routes.razor`.
+- The fake authentication provider and dedicated fake login page must not be included.
+- Every Blazor page and interactive circuit requires Microsoft Entra ID authentication using `Microsoft.Identity.Web` and organizational SSO.
+- The health-check API remains anonymously accessible for monitoring.
+- The sidebar account control must remain provider-neutral, render only for an authenticated user, and target the Microsoft Identity sign-out endpoint.
+- Enforce authentication globally on the Razor component endpoint; use page-level `[Authorize(Roles = "...")]` only for stricter role requirements.
 
 ### 3.2 Dynamic Sidebar Navigation
 
@@ -79,8 +79,8 @@ Build a reusable **Blazor Server** web application template that serves as a sta
 - Standard app shell: left sidebar (drawer) + main content area. No top app bar is required.
 - The top of the sidebar must include a dedicated branding area where the application name and icon/logo can be configured and displayed.
 - The sidebar application name and icon/logo should be defined in one centralized location so future projects can replace them without editing the navigation component markup.
-- The sidebar must provide the authenticated user greeting and logout control.
-- Sign-in must use a dedicated `/login` page with its own layout. The login page is the only application page that must not display the sidebar.
+- The sidebar must display the authenticated user greeting and logout control when an authentication provider supplies a user.
+- No fake or local login page is required. Microsoft Entra ID provides the sign-in experience.
 - Desktop-only — no need for responsive/collapsible mobile behavior at this stage (may be added later).
 - Sidebar should remain collapsed as a narrow icon rail by default, automatically expand when the pointer hovers over it, and collapse again when the pointer leaves.
 - In the collapsed state, navigation icons must remain visible while text labels, the application name, and secondary user details are hidden.
@@ -95,7 +95,7 @@ Build a reusable **Blazor Server** web application template that serves as a sta
 - `Components` is the presentation layer and must not directly access persistence implementations, external SDKs, or infrastructure-specific authentication classes.
 - `Application` contains use cases, service interfaces, DTOs, validation, and application-level results. UI components depend on these abstractions.
 - `Domain` contains business entities, value objects, enums, and rules that do not depend on Blazor, MudBlazor, persistence, or external services.
-- `Infrastructure` implements application interfaces for authentication, persistence, and external integrations. Fake authentication belongs here and must be clearly marked as development-only.
+- `Infrastructure` implements application interfaces for authentication, persistence, and external integrations. Microsoft Entra ID registration belongs here.
 - `Configuration` contains strongly typed options for application branding, authentication, and external services. Configuration must be bound and validated at startup.
 - `Middleware` contains centralized exception handling, request correlation, and other HTTP pipeline behavior when required.
 - `Common` contains narrowly scoped shared primitives such as result and error types; it must not become a catch-all folder for unrelated helpers.
@@ -121,16 +121,15 @@ Build a reusable **Blazor Server** web application template that serves as a sta
 
 ---
 
-## 5. Authentication Migration Plan (Future Step)
+## 5. Microsoft Entra ID Configuration
 
-When ready to move from fake auth to real Microsoft SSO:
+Microsoft SSO requires:
 
 1. Register app in Azure AD (Entra ID) — using a **personal/free Azure tenant** for POC purposes (not company tenant), via [azure.microsoft.com/free](https://azure.microsoft.com/free)
 2. Obtain: Tenant ID, Client ID, Client Secret, Primary Domain (all from the App Registration Overview page in Entra ID)
-3. Install `Microsoft.Identity.Web` and `Microsoft.Identity.Web.UI` NuGet packages
-4. Replace `FakeAuthStateProvider` registration in `Program.cs` with `AddMicrosoftIdentityWebApp(...)`
-5. Update login/logout button targets to `MicrosoftIdentity/Account/SignIn` / `SignOut`
-6. Store `ClientSecret` via `dotnet user-secrets` (never committed to source control)
+3. Configure the `AzureAd` section with `Instance`, `TenantId`, and `ClientId`
+4. Register the local and deployed `/signin-oidc` and `/signout-callback-oidc` redirect URIs
+5. Store `ClientSecret` via `dotnet user-secrets` for local development and a secure credential store in production
 
 ---
 
@@ -165,8 +164,7 @@ MyWebApp/
 │   ├── Errors/
 │   └── Results/
 ├── Configuration/
-│   ├── ApplicationOptions.cs
-│   └── AuthenticationOptions.cs
+│   └── ApplicationOptions.cs
 ├── Navigation/
 │   ├── NavMenuAttribute.cs
 │   ├── NavItem.cs
@@ -177,9 +175,6 @@ MyWebApp/
 │   ├── ValueObjects/
 │   └── Rules/
 ├── Infrastructure/
-│   ├── Authentication/
-│   │   ├── FakeAuthStateProvider.cs
-│   │   └── FakeCurrentUserService.cs
 │   ├── Persistence/
 │   ├── ExternalServices/
 │   └── DependencyInjection.cs
@@ -190,14 +185,11 @@ MyWebApp/
 ├── Components/
 │   ├── Layout/
 │   │   ├── MainLayout.razor
-│   │   ├── LoginLayout.razor
 │   │   └── NavTreeItem.razor
 │   ├── Shared/
 │   ├── Pages/
 │   │   ├── Home/
 │   │   │   └── Home.razor
-│   │   ├── Login/
-│   │   │   └── Login.razor
 │   │   ├── Error/
 │   │   │   └── Error.razor
 │   │   ├── NotFound/
@@ -236,8 +228,8 @@ Folders should be created when they have a concrete responsibility; the referenc
 ## 8. Acceptance Criteria
 
 - [ ] App runs locally with `dotnet run`, desktop browser only
-- [ ] Dummy login button authenticates a fake user; logout clears session
-- [ ] The `/login` page is the only page rendered without the sidebar; protected routes redirect anonymous users to it
+- [ ] No fake authentication provider or fake login page is included
+- [ ] Every Blazor page redirects anonymous users to Microsoft Entra ID for sign-in
 - [ ] Sidebar shows "Home" and expandable "Settings" (with "Users" nested child) with zero manual sidebar code
 - [ ] Menu groups expand only on hover, active branches remain expanded, parent items show a small down chevron, hover and selected highlights match, and navigation supports multiple nested submenu levels
 - [ ] Sidebar displays a configurable application name and icon/logo in its branding area

@@ -1,4 +1,4 @@
-namespace MyWebApp.Configuration;
+namespace MyWebApp.Configurations;
 
 public sealed class ApplicationOptions
 {

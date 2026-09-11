@@ -1,7 +1,12 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using MyWebApp.Application.Abstractions.Authentication;
+using MyWebApp.Application.Abstractions.Reports;
+using MyWebApp.Configurations;
 using MyWebApp.Infrastructure.Authentication;
+using MyWebApp.Infrastructure.Reports;
+using MyWebApp.Navigation;
 
 namespace MyWebApp.Infrastructure;
 
@@ -9,25 +14,33 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IWebHostEnvironment environment)
+        IConfiguration configuration)
     {
-        if (environment.IsDevelopment())
-        {
-            services.AddAuthentication(FakeHostAuthenticationHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, FakeHostAuthenticationHandler>(
-                    FakeHostAuthenticationHandler.SchemeName,
-                    _ => { });
-            services.AddScoped<FakeAuthStateProvider>();
-            services.AddScoped<AuthenticationStateProvider>(provider =>
-                provider.GetRequiredService<FakeAuthStateProvider>());
-            services.AddScoped<ICurrentUserService>(provider =>
-                provider.GetRequiredService<FakeAuthStateProvider>());
-        }
-        else
-        {
-            throw new InvalidOperationException(
-                "A production authentication provider must be registered outside Development.");
-        }
+        services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApp(configuration.GetSection("AzureAd"))
+            .EnableTokenAcquisitionToCallDownstreamApi(["User.Read"])
+            .AddMicrosoftGraph(configuration.GetSection("MicrosoftGraph"))
+            .AddInMemoryTokenCaches();
+
+        services.AddRazorPages()
+            .AddMicrosoftIdentityUI();
+
+        services.AddScoped<ICurrentUserService, MicrosoftCurrentUserService>();
+
+        services.AddOptions<SubmenuCatalogsOptions>()
+            .Bind(configuration.GetSection(SubmenuCatalogsOptions.SectionName))
+            .ValidateOnStart();
+
+        services.AddScoped<ReportMockService>();
+        services.AddScoped<ISalesPeriodCatalog>(serviceProvider =>
+            serviceProvider.GetRequiredService<ReportMockService>());
+        services.AddScoped<ISalesReportService>(serviceProvider =>
+            serviceProvider.GetRequiredService<ReportMockService>());
+
+        services.AddScoped<SubmenuProviderFactory>();
+        services.AddScoped<NavigationMerger>();
+        services.AddScoped<NavigationAuthorizationService>();
+        services.AddScoped<NavigationRefreshService>();
 
         return services;
     }

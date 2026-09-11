@@ -1,7 +1,7 @@
 namespace MyWebApp.Navigation;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class NavMenuAttribute(string title, string icon) : Attribute
+public sealed class NavMenuAttribute(string title, string icon, int order) : Attribute
 {
     public string Title { get; } = title;
 
@@ -9,5 +9,6 @@ public sealed class NavMenuAttribute(string title, string icon) : Attribute
 
     public string? Parent { get; set; }
 
-    public int Order { get; set; }
+    public int Order { get; } = order;
 }
+

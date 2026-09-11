@@ -1,0 +1,62 @@
+@page "/reports"
+@attribute [NavMenu("Sales Reports", Icons.Material.Filled.Assessment, 10)]
+@inject ISalesPeriodCatalog PeriodCatalog
+
+<PageTitle>Sales Reports · SiS Workspace</PageTitle>
+
+<section class="portal-page">
+    <header class="portal-page-header">
+        <div class="portal-page-header-copy">
+            <p class="portal-eyebrow">Report library</p>
+            <h1 class="portal-page-title">Sales reports</h1>
+            <p class="portal-page-subtitle">
+                Every period below opens the same sales report template, loaded with the selected month.
+            </p>
+        </div>
+        <span class="status-chip info">@_periods.Count periods</span>
+    </header>
+
+    @if (_loading)
+    {
+        <div class="empty-state"><p>Loading report periods…</p></div>
+    }
+    else if (_periods.Count == 0)
+    {
+        <div class="empty-state">
+            <h2>No periods available</h2>
+            <p>The report API returned no periods.</p>
+        </div>
+    }
+    else
+    {
+        <div class="portal-grid">
+            @foreach (var period in _periods)
+            {
+                <a class="report-period-card" href="@($"/reports/{period.Key}")">
+                    <MudIcon Icon="@period.Icon" Size="@Size.Medium" Class="report-period-icon" />
+                    <span class="report-period-title">@period.Title</span>
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="@Size.Small" Class="report-period-arrow" />
+                </a>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<SalesPeriodNavEntry> _periods = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _periods = (await PeriodCatalog.GetItemsAsync())
+                .Cast<SalesPeriodNavEntry>()
+                .ToList();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

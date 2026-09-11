@@ -20,7 +20,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
 builder.Services.AddMudServices();
 builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddInfrastructureServices(builder.Environment);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddSingleton(_ => new NavigationService(typeof(Program).Assembly));
 
 if (builder.Environment.IsDevelopment())
@@ -49,8 +49,11 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapHealthEndpoints();
+app.MapRazorPages();
+app.MapControllers();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .RequireAuthorization();
 
 app.Run();
 

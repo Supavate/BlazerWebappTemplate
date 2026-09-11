@@ -1,6 +1,6 @@
-@using MyWebApp.Infrastructure.Authentication
-@inject FakeAuthStateProvider Authentication
 @inject NavigationManager Navigation
+@inject MyWebApp.Application.Abstractions.Authentication.ICurrentUserService CurrentUserService
+@inject ILogger<AuthenticationControls> Logger
 
 <div class="sidebar-account">
     <AuthorizeView Context="authenticationState">
@@ -10,16 +10,16 @@
                     @GetInitials(authenticationState.User.Identity?.Name)
                 </MudAvatar>
                 <div class="sidebar-expanded-content account-copy">
-                    <strong>@authenticationState.User.Identity?.Name</strong>
-                    <span>@GetEmail(authenticationState.User)</span>
-                    <small>@GetRole(authenticationState.User)</small>
+                    <strong>@(_currentUser?.DisplayName ?? authenticationState.User.Identity?.Name)</strong>
+                    <span>@(_currentUser?.Email ?? GetEmail(authenticationState.User))</span>
+                    <small>@(_currentUser?.JobTitle ?? GetRole(authenticationState.User))</small>
                 </div>
             </div>
             <MudButton Variant="@Variant.Text"
                        Color="@Color.Inherit"
                        StartIcon="@Icons.Material.Filled.Logout"
                        FullWidth="true"
-                       OnClick="SignOutAsync"
+                       OnClick="SignOut"
                        Class="sidebar-account-button">
                 <span class="sidebar-expanded-content">Sign out</span>
             </MudButton>
@@ -28,11 +28,22 @@
 </div>
 
 @code {
-    private async Task SignOutAsync()
+    private MyWebApp.Application.Models.Authentication.CurrentUser? _currentUser;
+
+    protected override async Task OnInitializedAsync()
     {
-        await Authentication.SignOutAsync();
-        Navigation.NavigateTo("/login", replace: true);
+        try
+        {
+            _currentUser = await CurrentUserService.GetCurrentUserAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogWarning(exception, "Could not load the current user's Microsoft Graph profile.");
+        }
     }
+
+    private void SignOut() =>
+        Navigation.NavigateTo("/MicrosoftIdentity/Account/SignOut", forceLoad: true);
 
     private static string GetInitials(string? name)
     {
@@ -48,7 +59,11 @@
     }
 
     private static string GetEmail(System.Security.Claims.ClaimsPrincipal user) =>
-        user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "No email";
+        user.FindFirst("preferred_username")?.Value
+        ?? user.FindFirst("upn")?.Value
+        ?? user.FindFirst("email")?.Value
+        ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+        ?? "No email";
 
     private static string GetRole(System.Security.Claims.ClaimsPrincipal user) =>
         user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "User";

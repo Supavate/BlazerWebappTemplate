@@ -1,0 +1,112 @@
+@implements IDisposable
+@inject NavigationMerger NavigationMerger
+@inject NavigationAuthorizationService NavigationAuthorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject NavigationRefreshService NavigationRefresh
+@inject Microsoft.Extensions.Options.IOptions<MyWebApp.Configurations.ApplicationOptions> ApplicationOptions
+
+<MudBreakpointProvider OnBreakpointChanged="HandleBreakpointChanged" />
+
+<MudDrawer Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)" @bind-Open="_drawerOpen"
+           OpenMiniOnHover="@(!_isMobile)" Breakpoint="@Breakpoint.Md" Overlay="@_isMobile" OverlayAutoClose="true"
+           Fixed="true" Width="280px" MiniWidth="76px" Elevation="0" Class="portal-sidebar">
+    <div class="sidebar-content">
+        <div class="sidebar-brand" aria-label="@ApplicationOptions.Value.Name">
+            <span class="brand-icon">
+                <MudIcon Icon="@BrandIconResolver.Resolve(ApplicationOptions.Value.Icon)" />
+            </span>
+            <span class="sidebar-expanded-content brand-name">@ApplicationOptions.Value.Name</span>
+        </div>
+
+        <div class="sidebar-divider" role="presentation"></div>
+
+        <MudNavMenu Class="sidebar-navigation">
+            @foreach (var item in _navigationItems)
+            {
+                <NavTreeItem Item="item" />
+            }
+        </MudNavMenu>
+
+        <AuthenticationControls />
+    </div>
+</MudDrawer>
+
+@if (_isMobile && !_drawerOpen)
+{
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="@Color.Inherit" Size="@Size.Large"
+                   OnClick="OpenMobileDrawer" Class="mobile-menu-button" aria-label="Open navigation" />
+}
+
+@code {
+    private bool _drawerOpen;
+    private bool _isMobile;
+    private IReadOnlyList<NavItem> _navigationItems = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationStateChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
+        NavigationRefresh.NavigationChanged += HandleNavigationChanged;
+        await RefreshNavigationAsync();
+    }
+
+    private async Task RefreshNavigationAsync()
+    {
+        var items = await NavigationMerger.GetItemsAsync();
+        _navigationItems = await NavigationAuthorization.GetAuthorizedItemsAsync(items);
+    }
+
+    private void HandleBreakpointChanged(Breakpoint breakpoint)
+    {
+        var isMobile = breakpoint is Breakpoint.Xs or Breakpoint.Sm;
+        if (_isMobile == isMobile)
+        {
+            return;
+        }
+
+        _isMobile = isMobile;
+        _drawerOpen = false;
+    }
+
+    private void OpenMobileDrawer() => _drawerOpen = true;
+
+    private void HandleAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshNavigationAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (!_isMobile)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            _drawerOpen = false;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleNavigationChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshNavigationAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationStateChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
+        NavigationRefresh.NavigationChanged -= HandleNavigationChanged;
+    }
+}

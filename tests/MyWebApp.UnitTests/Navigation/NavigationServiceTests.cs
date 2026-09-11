@@ -32,22 +32,22 @@ public sealed class NavigationServiceTests
     }
 
     [Route("/test-home")]
-    [NavMenu("Test Home", Icons.Material.Filled.Home, Order = 0)]
+    [NavMenu("Test Home", Icons.Material.Filled.Home, 0)]
     private sealed class TestHomeComponent : ComponentBase;
 
     [Route("/test-settings")]
-    [NavMenu("Test Settings", Icons.Material.Filled.Settings, Order = 10)]
+    [NavMenu("Test Settings", Icons.Material.Filled.Settings, 10)]
     private sealed class TestSettingsComponent : ComponentBase;
 
     [Route("/test-settings/users")]
-    [NavMenu("Test Users", Icons.Material.Filled.People, Parent = "/test-settings", Order = 5)]
+    [NavMenu("Test Users", Icons.Material.Filled.People, 5, Parent = "/test-settings")]
     private sealed class TestUsersComponent : ComponentBase;
 
     [Route("/test-settings/users/permissions")]
     [NavMenu(
         "Test Permissions",
         Icons.Material.Filled.Security,
-        Parent = "/test-settings/users",
-        Order = 5)]
+        5,
+        Parent = "/test-settings/users")]
     private sealed class TestPermissionsComponent : ComponentBase;
 }

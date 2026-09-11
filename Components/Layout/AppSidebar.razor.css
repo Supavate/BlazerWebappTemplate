@@ -1,10 +1,3 @@
-.app-document-shell {
-    padding: 0;
-    margin-left: 76px;
-    min-height: 100vh;
-}
-
-
 ::deep .portal-sidebar {
     border-right: 0;
     overflow: hidden;
@@ -64,6 +57,7 @@
     color: var(--sidebar-text);
     margin-bottom: var(--space-1);
     min-height: 46px;
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
 ::deep .sidebar-navigation.mud-navmenu .mud-nav-link:hover:not(.mud-nav-link-disabled),
@@ -79,7 +73,26 @@
     color: var(--sidebar-highlight-text);
 }
 
+::deep .sidebar-navigation .nav-submenu-shell {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+        grid-template-rows 200ms cubic-bezier(.4, 0, .2, 1),
+        opacity 140ms ease,
+        transform 200ms cubic-bezier(.4, 0, .2, 1);
+}
+
+::deep .sidebar-navigation .nav-group-hover-region.expanded > .nav-submenu-shell {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+}
+
 ::deep .sidebar-navigation .nav-submenu {
+    min-height: 0;
+    overflow: hidden;
     padding-left: var(--space-2);
 }
 
@@ -93,40 +106,27 @@
 
 ::deep .sidebar-navigation .nav-child-indicator {
     flex: 0 0 auto;
+    transition: transform 200ms cubic-bezier(.4, 0, .2, 1);
 }
 
-::deep .portal-main-content {
-    background: var(--bg-body);
-    min-height: 100vh;
+::deep .sidebar-navigation .nav-group-hover-region.expanded > .mud-nav-link .nav-child-indicator {
+    transform: rotate(180deg);
 }
 
-.main-content {
-    margin: 0 auto;
-    max-width: 1500px;
-    padding: var(--space-7);
-}
-
-#blazor-error-ui {
-    background: var(--danger-theme);
-    bottom: 0;
+::deep .mobile-menu-button {
+    background: var(--bg-sidebar);
     box-shadow: var(--shadow-md);
     color: var(--inverse-text);
-    display: none;
-    left: 0;
-    padding: var(--space-3) var(--space-5);
+    left: var(--space-3);
+    pointer-events: auto;
     position: fixed;
-    width: 100%;
-    z-index: 2000;
+    top: var(--space-3);
 }
 
-#blazor-error-ui .reload {
-    color: var(--inverse-text);
-    font-weight: 700;
-    margin-left: var(--space-2);
-}
-
-#blazor-error-ui .dismiss {
-    cursor: pointer;
-    position: absolute;
-    right: var(--space-4);
+@media (prefers-reduced-motion: reduce) {
+    ::deep .sidebar-navigation .mud-nav-link,
+    ::deep .sidebar-navigation .nav-submenu-shell,
+    ::deep .sidebar-navigation .nav-child-indicator {
+        transition: none;
+    }
 }

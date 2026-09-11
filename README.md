@@ -1,6 +1,6 @@
 # MyWebApp Developer Guide
 
-MyWebApp is a .NET 10 Blazor Web App using interactive server rendering and MudBlazor. It includes automatic sidebar navigation, a centralized theme, development-only fake authentication, and a backend structure ready for application and infrastructure services.
+MyWebApp is a .NET 10 Blazor Web App using interactive server rendering and MudBlazor. It includes automatic sidebar navigation, a centralized theme, a health-check API, and a backend structure ready for application and infrastructure services.
 
 ## Quick start
 
@@ -13,12 +13,25 @@ From the project directory:
 
 ```powershell
 dotnet restore
+dotnet user-secrets set "AzureAd:ClientSecret" "YOUR-CLIENT-SECRET"
 dotnet run --launch-profile https
 ```
 
-Open `https://localhost:7174`. The HTTP profile is available at `http://localhost:5095`.
+Open `https://localhost:7174`. Local authentication uses HTTPS so its generated redirect URI matches the Entra app registration.
 
-The login page offers development-only User and Admin identities. Fake authentication is intentionally blocked outside the Development environment.
+Microsoft Entra ID authentication is registered through Microsoft Identity Web. Every Blazor page and interactive circuit requires an authenticated organizational user; the health-check API remains public.
+
+The application requests the delegated Microsoft Graph `User.Read` permission. Add this permission under **App registrations > API permissions > Microsoft Graph > Delegated permissions** in Microsoft Entra. The current-user service calls `/me` for display name, email, job title, and office location while retaining the tenant ID, object ID, and roles from authentication claims.
+
+Inject `ICurrentUserService` wherever the application needs the signed-in profile:
+
+```csharp
+var currentUser = await currentUserService.GetCurrentUserAsync(cancellationToken);
+```
+
+`CurrentUser` uses the stable tenant ID and object ID as identity values. Email is resolved from Graph `mail`, Graph `userPrincipalName`, then the available username/email claim. If Graph is unavailable, the service logs a warning and returns the claim-based profile without Graph-only fields such as job title.
+
+The Tenant ID and Client ID belong in `appsettings.json`. Keep the client secret out of source control; use user secrets locally and the hosting platform's secure credential store in production. Register `https://localhost:7174/signin-oidc` and `https://localhost:7174/signout-callback-oidc` as Web redirect URIs in the Entra app registration.
 
 Run the tests with:
 
@@ -38,11 +51,11 @@ dotnet test tests/MyWebApp.UnitTests/MyWebApp.UnitTests.csproj
 | Change sidebar structure, width, or page layout | `Components/Layout/MainLayout.razor` |
 | Change sidebar brand and navigation styling | `Components/Layout/MainLayout.razor.css` |
 | Change sidebar account footer and sign-out styling | `Components/Layout/AuthenticationControls.razor` and `.razor.css` |
-| Change the login layout | `Components/Layout/LoginLayout.razor` and `.razor.css` |
 | Change a specific page | Its folder under `Components/Pages/<PageName>/` |
 | Change automatic menu discovery rules | `Navigation/NavigationService.cs` and `NavMenuAttribute.cs` |
 | Change application configuration validation | `Application/DependencyInjection.cs` |
 | Register databases, external clients, or provider implementations | `Infrastructure/DependencyInjection.cs` |
+| Change the current Microsoft user model or Graph profile mapping | `Application/Models/Authentication/CurrentUser.cs` and `Infrastructure/Authentication/MicrosoftCurrentUserService.cs` |
 | Add HTTP API endpoints | `Endpoints/` and the mapping call in `Program.cs` |
 | Change middleware or application startup | `Program.cs` |
 
@@ -74,7 +87,6 @@ Use this starting component:
 
 ```razor
 @page "/reports"
-@attribute [Authorize]
 @attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, Order = 10)]
 
 <PageTitle>Reports · SiS Workspace</PageTitle>
@@ -99,7 +111,7 @@ The navigation rules are:
 - Use `Order` to control placement; lower values appear first.
 - Route parameters are not supported for sidebar entries.
 - Omit `NavMenu` when a routable page should not appear in the sidebar.
-- Add `[AllowAnonymous]` only when the page must be accessible without login; otherwise use `[Authorize]`.
+- All Blazor pages are protected globally by the authorized Razor component endpoint. Add `[Authorize(Roles = "...")]` only when a page needs a stricter role requirement.
 
 Restart the application after adding or changing navigation metadata because the menu is discovered at startup.
 
@@ -115,7 +127,6 @@ Components/Pages/Settings/AuditLog/
 
 ```razor
 @page "/settings/audit-log"
-@attribute [Authorize]
 @attribute [NavMenu(
     "Audit log",
     Icons.Material.Filled.History,
@@ -177,7 +188,7 @@ For real features:
 6. Return intentional status codes such as `Ok`, `Created`, `NoContent`, `NotFound`, and `ValidationProblem`.
 7. Pass `CancellationToken` through asynchronous endpoint and service calls.
 
-Use `.RequireAuthorization()` for protected endpoint groups. Use `.AllowAnonymous()` only for endpoints that deliberately need public access, such as health probes.
+API endpoints are separate from the globally protected Blazor endpoint. Use `.RequireAuthorization()` for protected API groups and keep `.AllowAnonymous()` only on endpoints that deliberately need public access, such as health probes.
 
 ## Health-check API
 
@@ -246,9 +257,9 @@ Edit the variable values in `wwwroot/css/theme.css` to change the application co
 
 ## Production and Docker
 
-The Dockerfile uses .NET 10 images and publishes the application on port 8080. However, production startup intentionally fails until a real authentication provider is registered in `Infrastructure/DependencyInjection.cs`. Replace the development fake provider with the chosen production authentication integration before building a deployable container.
+The Dockerfile uses .NET 10 images and publishes the application on port 8080. Supply the Entra configuration and a production credential through the hosting platform's secure configuration before deploying.
 
-Build the image after production authentication is configured:
+Build the image with:
 
 ```powershell
 docker build -f DOCKERFILE -t mywebapp .

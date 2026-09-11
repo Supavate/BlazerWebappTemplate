@@ -1,6 +1,5 @@
 @page "/settings/users"
-@attribute [Authorize]
-@attribute [NavMenu("Users", Icons.Material.Filled.People, Parent = "/settings", Order = 10)]
+@attribute [NavMenu("Users", Icons.Material.Filled.People, 10, Parent = "/settings")]
 
 <PageTitle>Users · SiS Workspace</PageTitle>
 
@@ -8,33 +7,33 @@
     <header class="portal-page-header">
         <div class="portal-page-header-copy">
             <p class="portal-eyebrow">Settings / Users</p>
-            <h1 class="portal-page-title">Development identities</h1>
-            <p class="portal-page-subtitle">These accounts exercise the same claims and authorization APIs that Microsoft Entra ID will use later.</p>
+            <h1 class="portal-page-title">User settings</h1>
+            <p class="portal-page-subtitle">Review the Microsoft Entra ID integration and future application-role setup.</p>
         </div>
-        <span class="status-chip warning">Fake provider</span>
+        <span class="status-chip success">SSO enabled</span>
     </header>
 
     <section class="table-shell">
         <div class="portal-card-header table-heading">
             <div>
-                <h2 class="portal-card-title">Available roles</h2>
-                <p class="portal-card-subtitle">Use the sidebar sign-in controls to switch identity.</p>
+                <h2 class="portal-card-title">Identity capabilities</h2>
+                <p class="portal-card-subtitle">Authentication is supplied by Microsoft Entra ID.</p>
             </div>
-            <span class="status-chip info">2 roles</span>
+            <span class="status-chip info">Planned</span>
         </div>
         <div class="table-scroll">
             <table class="portal-table">
-                <thead><tr><th>Role</th><th>Purpose</th><th>Provider</th><th>Status</th></tr></thead>
+                <thead><tr><th>Feature</th><th>Purpose</th><th>Provider</th><th>Status</th></tr></thead>
                 <tbody>
-                    <tr><td><strong>User</strong></td><td>Standard authenticated navigation and page access</td><td>FakeAuthentication</td><td><span class="status-chip success">Available</span></td></tr>
-                    <tr><td><strong>Admin</strong></td><td>Role-claim testing for future administrative features</td><td>FakeAuthentication</td><td><span class="status-chip success">Available</span></td></tr>
+                    <tr><td><strong>Single sign-on</strong></td><td>Authenticate organizational users</td><td>Microsoft Entra ID</td><td><span class="status-chip success">Enabled</span></td></tr>
+                    <tr><td><strong>Application roles</strong></td><td>Authorize administrative and standard-user features</td><td>Microsoft Entra ID</td><td><span class="status-chip warning">Not configured</span></td></tr>
                 </tbody>
             </table>
         </div>
     </section>
 
     <div class="portal-alert development-warning">
-        <strong>Development only</strong>
-        <span>The fake provider is blocked outside the Development environment and must be replaced before deployment.</span>
+        <strong>Application roles</strong>
+        <span>Define and assign Entra application roles before enabling role-specific pages or navigation.</span>
     </div>
 </section>
