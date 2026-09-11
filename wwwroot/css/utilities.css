@@ -267,3 +267,7 @@
 .card-surface {
     background: var(--bg-surface);
 }
+
+.mud-chart .mud-chart-serie:hover {
+    filter: none;
+}

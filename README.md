@@ -8,6 +8,9 @@ Requirements:
 
 - .NET 10 SDK
 - A trusted ASP.NET Core development certificate for local HTTPS
+- Redis 6 or later
+
+Start Redis locally and make sure it is reachable at `localhost:6379`.
 
 From the project directory:
 
@@ -18,6 +21,13 @@ dotnet run --launch-profile https
 ```
 
 Open `https://localhost:7174`. Local authentication uses HTTPS so its generated redirect URI matches the Entra app registration.
+
+The default Redis connection is `localhost:6379`. Override it without editing committed settings when necessary:
+
+```powershell
+$env:ConnectionStrings__Redis = "redis-host:6379,password=YOUR_PASSWORD,ssl=true,abortConnect=false"
+dotnet run --launch-profile https
+```
 
 Microsoft Entra ID authentication is registered through Microsoft Identity Web. Every Blazor page and interactive circuit requires an authenticated organizational user; the health-check API remains public.
 
@@ -30,6 +40,19 @@ var currentUser = await currentUserService.GetCurrentUserAsync(cancellationToken
 ```
 
 `CurrentUser` uses the stable tenant ID and object ID as identity values. Email is resolved from Graph `mail`, Graph `userPrincipalName`, then the available username/email claim. If Graph is unavailable, the service logs a warning and returns the claim-based profile without Graph-only fields such as job title.
+
+Microsoft Identity Web stores user tokens in Redis instead of process memory. This keeps the MSAL account available when the application restarts and prevents an existing authentication cookie from producing `MsalUiRequiredException` with `ErrorCode: user_null`. Token-cache entries are encrypted with ASP.NET Core Data Protection before being written to Redis.
+
+## TODO: production Redis and stale-session recovery
+
+- [ ] Provision a production Redis service and set `ConnectionStrings__Redis` in the hosting platform's secret store. Require TLS and authentication; don't commit its password or access key.
+- [ ] Give each environment a distinct `Redis__InstanceName`, such as `MyWebApp:Production:`, so development, staging, and production token caches never overlap.
+- [ ] Persist ASP.NET Core Data Protection keys in a durable key store shared by every application instance.
+- [ ] Configure Redis persistence, availability, backups, network restrictions, and monitoring according to the hosting environment's recovery requirements.
+- [ ] Add a cookie-validation or HTTP challenge recovery path for the remaining cache-loss case. When Microsoft Identity Web reports `MicrosoftIdentityWebChallengeUserException`/`user_null`, reject the stale authentication cookie and start a fresh OpenID Connect sign-in. Don't attempt the challenge from an active Blazor SignalR circuit, where the HTTP response may already have started.
+- [ ] Test the recovery flow: sign in, load the Graph profile, restart the web application while Redis stays running, and confirm the profile still loads without another sign-in. Then deliberately flush only the test token-cache database and confirm the next full HTTP request reauthenticates instead of repeatedly logging `user_null`.
+
+For an already-stale local session, clear the localhost authentication cookies (or sign out), keep Redis running, restart the application, and sign in once. The new authorization-code exchange will populate Redis.
 
 The Tenant ID and Client ID belong in `appsettings.json`. Keep the client secret out of source control; use user secrets locally and the hosting platform's secure credential store in production. Register `https://localhost:7174/signin-oidc` and `https://localhost:7174/signout-callback-oidc` as Web redirect URIs in the Entra app registration.
 
@@ -48,8 +71,8 @@ dotnet test tests/MyWebApp.UnitTests/MyWebApp.UnitTests.csproj
 | Change colors, spacing, typography, radii, or shadows | `wwwroot/css/theme.css` |
 | Change reusable page utilities, cards, tables, and status styles | `wwwroot/css/utilities.css` |
 | Change global HTML/body behavior | `wwwroot/app.css` |
-| Change sidebar structure, width, or page layout | `Components/Layout/MainLayout.razor` |
-| Change sidebar brand and navigation styling | `Components/Layout/MainLayout.razor.css` |
+| Change sidebar structure, responsive behavior, or navigation styling | `Components/Layout/AppSidebar.razor` and `.razor.css` |
+| Change the page-content gutter, width, or error presentation | `Components/Layout/AppDocument.razor` and `.razor.css` |
 | Change sidebar account footer and sign-out styling | `Components/Layout/AuthenticationControls.razor` and `.razor.css` |
 | Change a specific page | Its folder under `Components/Pages/<PageName>/` |
 | Change automatic menu discovery rules | `Navigation/NavigationService.cs` and `NavMenuAttribute.cs` |
@@ -87,7 +110,7 @@ Use this starting component:
 
 ```razor
 @page "/reports"
-@attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, Order = 10)]
+@attribute [NavMenu("Reports", Icons.Material.Filled.Assessment, 10)]
 
 <PageTitle>Reports · SiS Workspace</PageTitle>
 
@@ -112,6 +135,16 @@ The navigation rules are:
 - Route parameters are not supported for sidebar entries.
 - Omit `NavMenu` when a routable page should not appear in the sidebar.
 - All Blazor pages are protected globally by the authorized Razor component endpoint. Add `[Authorize(Roles = "...")]` only when a page needs a stricter role requirement.
+- Sidebar items are filtered using the destination page's authorization metadata. A denied parent removes its complete navigation branch.
+
+To protect a feature folder and its nested pages with one policy, add an `_Imports.razor` file to that folder. For example, `Components/Pages/Settings/_Imports.razor` contains:
+
+```razor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "ViewSettings")]
+```
+
+The policy applies recursively to routed components in the folder, and the sidebar uses the same compiled metadata to hide the corresponding items from unauthorized users. Route authorization remains the security boundary; menu filtering only prevents users from seeing links they cannot open.
 
 Restart the application after adding or changing navigation metadata because the menu is discovered at startup.
 
@@ -130,8 +163,8 @@ Components/Pages/Settings/AuditLog/
 @attribute [NavMenu(
     "Audit log",
     Icons.Material.Filled.History,
-    Parent = "/settings",
-    Order = 20)]
+    20,
+    Parent = "/settings")]
 
 <PageTitle>Audit log · SiS Workspace</PageTitle>
 
@@ -254,14 +287,3 @@ Use existing CSS variables instead of hard-coded colors or spacing:
 ```
 
 Edit the variable values in `wwwroot/css/theme.css` to change the application consistently. Reusable structural classes belong in `wwwroot/css/utilities.css`; page-only styles belong in that page's scoped `.razor.css` file.
-
-## Production and Docker
-
-The Dockerfile uses .NET 10 images and publishes the application on port 8080. Supply the Entra configuration and a production credential through the hosting platform's secure configuration before deploying.
-
-Build the image with:
-
-```powershell
-docker build -f DOCKERFILE -t mywebapp .
-docker run --rm -p 8080:8080 mywebapp
-```

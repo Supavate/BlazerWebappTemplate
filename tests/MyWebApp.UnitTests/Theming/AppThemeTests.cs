@@ -22,6 +22,11 @@ public sealed class AppThemeTests
         AssertToken(css, "--success-theme", AppTheme.Success);
         AssertToken(css, "--warning-theme", AppTheme.Warning);
         AssertToken(css, "--danger-theme", AppTheme.Danger);
+        AssertToken(css, "--chart-orange", AppTheme.ChartOrange);
+        AssertToken(css, "--chart-blue", AppTheme.ChartBlue);
+        AssertToken(css, "--chart-teal", AppTheme.ChartTeal);
+        AssertToken(css, "--chart-gold", AppTheme.ChartGold);
+        AssertToken(css, "--chart-remainder-theme", AppTheme.ChartRemainder);
     }
 
     private static void AssertToken(string css, string token, string value) =>

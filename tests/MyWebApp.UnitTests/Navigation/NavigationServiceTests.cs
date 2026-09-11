@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Authorization;
 using MudBlazor;
 using MyWebApp.Navigation;
 
@@ -6,6 +7,18 @@ namespace MyWebApp.UnitTests.Navigation;
 
 public sealed class NavigationServiceTests
 {
+    [Fact]
+    public void SettingsNavigationCarriesThePageAuthorizationPolicy()
+    {
+        var service = new NavigationService(typeof(Program).Assembly);
+
+        var settings = Assert.Single(service.Items, item => item.Route == "/settings");
+        Assert.Contains(settings.AuthorizationData, HasViewSettingsPolicy);
+
+        var users = Assert.Single(settings.Children, item => item.Route == "/settings/users");
+        Assert.Contains(users.AuthorizationData, HasViewSettingsPolicy);
+    }
+
     [Fact]
     public void BuildsOrderedHierarchyFromPageMetadata()
     {
@@ -50,4 +63,7 @@ public sealed class NavigationServiceTests
         5,
         Parent = "/test-settings/users")]
     private sealed class TestPermissionsComponent : ComponentBase;
+
+    private static bool HasViewSettingsPolicy(IAuthorizeData authorizationData) =>
+        authorizationData.Policy == "ViewSettings";
 }

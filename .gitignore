@@ -34,12 +34,12 @@ packages/
 
 # Local ASP.NET Core state and secrets
 .data-protection-keys/
+.https/
 appsettings.Local.json
 appsettings.*.Local.json
 secrets.json
 .env
 .env.*
-!.env.example
 *.pfx
 *.p12
 
