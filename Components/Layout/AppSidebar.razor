@@ -8,35 +8,39 @@
 
 <MudBreakpointProvider OnBreakpointChanged="HandleBreakpointChanged" />
 
-<MudDrawer Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)" @bind-Open="_drawerOpen"
-           OpenMiniOnHover="@(!_isMobile)" Breakpoint="@Breakpoint.Md" Overlay="@_isMobile" OverlayAutoClose="true"
-           Fixed="true" Width="280px" MiniWidth="76px" Elevation="0" Class="portal-sidebar">
-    <div class="sidebar-content">
-        <div class="sidebar-brand" aria-label="@ApplicationOptions.Value.Name">
-            <span class="brand-icon">
-                <MudIcon Icon="@BrandIconResolver.Resolve(ApplicationOptions.Value.Icon)" />
-            </span>
-            <span class="sidebar-expanded-content brand-name">@ApplicationOptions.Value.Name</span>
-        </div>
+<div class="sidebar-layer">
+    <MudDrawerContainer Class="sidebar-drawer-container">
+        <MudDrawer Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)" @bind-Open="_drawerOpen"
+                   OpenMiniOnHover="@(!_isMobile)" Breakpoint="@Breakpoint.Md" Overlay="@_isMobile" OverlayAutoClose="true"
+                   Fixed="true" Width="280px" MiniWidth="76px" Elevation="0" Class="portal-sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-brand" aria-label="@ApplicationOptions.Value.Name">
+                    <span class="brand-icon">
+                        <MudIcon Icon="@BrandIconResolver.Resolve(ApplicationOptions.Value.Icon)" />
+                    </span>
+                    <span class="sidebar-expanded-content brand-name">@ApplicationOptions.Value.Name</span>
+                </div>
 
-        <div class="sidebar-divider" role="presentation"></div>
+                <div class="sidebar-divider" role="presentation"></div>
 
-        <MudNavMenu Class="sidebar-navigation">
-            @foreach (var item in _navigationItems)
-            {
-                <NavTreeItem Item="item" />
-            }
-        </MudNavMenu>
+                <MudNavMenu Class="sidebar-navigation">
+                    @foreach (var item in _navigationItems)
+                    {
+                        <NavTreeItem Item="item" />
+                    }
+                </MudNavMenu>
 
-        <AuthenticationControls />
-    </div>
-</MudDrawer>
+                <AuthenticationControls />
+            </div>
+        </MudDrawer>
+    </MudDrawerContainer>
 
-@if (_isMobile && !_drawerOpen)
-{
-    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="@Color.Inherit" Size="@Size.Large"
-                   OnClick="OpenMobileDrawer" Class="mobile-menu-button" aria-label="Open navigation" />
-}
+    @if (_isMobile && !_drawerOpen)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="@Color.Inherit" Size="@Size.Large"
+                       OnClick="OpenMobileDrawer" Class="mobile-menu-button" aria-label="Open navigation" />
+    }
+</div>
 
 @code {
     private bool _drawerOpen;
@@ -80,7 +84,7 @@
         });
     }
 
-    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    private void HandleLocationChanged(object? sendor, LocationChangedEventArgs args)
     {
         if (!_isMobile)
         {
@@ -102,6 +106,7 @@
             StateHasChanged();
         });
     }
+
     public void Dispose()
     {
         AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationStateChanged;

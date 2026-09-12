@@ -1,3 +1,19 @@
+.sidebar-layer {
+    inset: 0;
+    pointer-events: none;
+    position: fixed;
+    z-index: var(--mud-zindex-drawer);
+}
+
+::deep .sidebar-drawer-container {
+    height: 100%;
+}
+
+::deep .portal-sidebar,
+::deep .mud-overlay {
+    pointer-events: auto;
+}
+
 ::deep .portal-sidebar {
     border-right: 0;
     overflow: hidden;
