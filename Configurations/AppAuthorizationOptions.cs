@@ -8,5 +8,5 @@ public sealed class AppAuthorizationOptions
 
 public sealed class PolicyOptions
 {
-    public string[] Roles { get; init; } = [];
+    public string Permission { get; init; } = string.Empty;
 }

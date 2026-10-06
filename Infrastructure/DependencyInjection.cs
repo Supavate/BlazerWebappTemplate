@@ -5,9 +5,11 @@ using Microsoft.Identity.Web.UI;
 using MyWebApp.Application.Abstractions.Authentication;
 using MyWebApp.Application.Abstractions.Reports;
 using MyWebApp.Configurations;
+using MyWebApp.Infrastructure.Authorization;
 using MyWebApp.Infrastructure.Authentication;
 using MyWebApp.Infrastructure.Reports;
 using MyWebApp.Navigation;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MyWebApp.Infrastructure;
 
@@ -42,6 +44,9 @@ public static class DependencyInjection
             .AddMicrosoftIdentityUI();
 
         services.AddScoped<ICurrentUserService, MicrosoftCurrentUserService>();
+        services.AddSingleton<PermissionService>();
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         RegisterReportApi(services, configuration);
         RegisterSubmenuProviders(services, configuration);

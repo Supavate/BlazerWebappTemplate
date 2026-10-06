@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using MyWebApp.Configurations;
+using MyWebApp.Infrastructure.Authorization;
 
 namespace MyWebApp.Application;
 
@@ -20,15 +21,16 @@ public static class DependencyInjection
         {
             foreach (var (policyName, policySettings) in authorizationSettings.Policies)
             {
-                if (policySettings.Roles.Length == 0)
+                if (string.IsNullOrWhiteSpace(policySettings.Permission))
                 {
                     throw new InvalidOperationException(
-                        $"Policy '{policyName}' must have at least one role defined."
+                        $"Policy '{policyName}' must have a permission defined."
                     );
                 }
 
                 options.AddPolicy(policyName, policy =>
-                    policy.RequireRole(policySettings.Roles)
+                    policy.RequireAuthenticatedUser()
+                        .AddRequirements(new PermissionRequirement(policySettings.Permission))
                 );
             }
         });
