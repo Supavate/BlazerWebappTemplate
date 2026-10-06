@@ -8,7 +8,7 @@
     protected override void OnInitialized()
     {
         var originalPath = Navigation.ToAbsoluteUri(Navigation.Uri).AbsolutePath;
-        var destination = $"/error/{StatusCode}";
+        var destination = $"error/{StatusCode}";
 
         if (StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
         {

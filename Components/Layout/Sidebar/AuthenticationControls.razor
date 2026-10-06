@@ -43,7 +43,7 @@
     }
 
     private void SignOut() =>
-        Navigation.NavigateTo("/MicrosoftIdentity/Account/SignOut", forceLoad: true);
+        Navigation.NavigateTo("MicrosoftIdentity/Account/SignOut", forceLoad: true);
 
     private static string GetInitials(string? name)
     {

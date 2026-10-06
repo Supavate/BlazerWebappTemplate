@@ -6,7 +6,7 @@
     <div class="nav-group-hover-region @(_expanded ? "expanded" : null)"
          @onmouseenter="Expand"
          @onmouseleave="CollapseUnlessSelected">
-        <MudNavLink Href="@Item.Route"
+        <MudNavLink Href="@GetHref(Item)"
                     Icon="@Item.Icon"
                     Match="@NavLinkMatch.All">
             <span class="nav-parent-content">
@@ -32,7 +32,7 @@
 }
 else
 {
-    <MudNavLink Href="@Item.Route" Icon="@Item.Icon" Match="@GetMatchMode(Item)">
+    <MudNavLink Href="@GetHref(Item)" Icon="@Item.Icon" Match="@GetMatchMode(Item)">
         @Item.Title
     </MudNavLink>
 }
@@ -83,6 +83,9 @@ else
     private static NavLinkMatch GetMatchMode(NavItem item) => item.Route == "/"
         ? NavLinkMatch.All
         : NavLinkMatch.Prefix;
+
+    private static string GetHref(NavItem item) =>
+        ApplicationPath.ToBaseRelativeUrl(item.Route);
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {

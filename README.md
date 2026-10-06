@@ -56,6 +56,8 @@ For an already-stale local session, clear the localhost authentication cookies (
 
 The Tenant ID and Client ID belong in `appsettings.json`. Keep the client secret out of source control; use user secrets locally and the hosting platform's secure credential store in production. Register `https://localhost:7174/signin-oidc` and `https://localhost:7174/signout-callback-oidc` as Web redirect URIs in the Entra app registration.
 
+To host the application below a URL prefix, set `Application:BasePath` (for example, `/workspace`). Authentication, sign-out, static assets, health checks, and client navigation will then remain below that prefix. Register the prefixed callback URLs with Entra ID, such as `https://example.com/workspace/signin-oidc` and `https://example.com/workspace/signout-callback-oidc`.
+
 Run the tests with:
 
 ```powershell

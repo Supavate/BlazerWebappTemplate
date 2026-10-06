@@ -50,6 +50,22 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+var basePath = ApplicationPath.GetBasePath(app.Configuration);
+if (basePath.HasValue)
+{
+    app.Use(async (context, next) =>
+    {
+        if (!context.Request.Path.StartsWithSegments(basePath))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        await next(context);
+    });
+    app.UsePathBase(basePath);
+}
+
 app.UseExceptionHandler("/error/500", createScopeForErrors: true);
 
 if (!app.Environment.IsDevelopment())

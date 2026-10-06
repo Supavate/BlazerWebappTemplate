@@ -7,4 +7,6 @@ public sealed class ApplicationOptions
     public string Name { get; set; } = "My Web App";
 
     public string Icon { get; set; } = "Business";
+
+    public string BasePath { get; set; } = string.Empty;
 }

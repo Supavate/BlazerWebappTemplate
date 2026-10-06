@@ -10,9 +10,9 @@
 
 <div class="sidebar-layer">
     <MudDrawerContainer Class="sidebar-drawer-container">
-        <MudDrawer Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)" @bind-Open="_drawerOpen"
-                   OpenMiniOnHover="@(!_isMobile)" Breakpoint="@Breakpoint.Md" Overlay="@_isMobile" OverlayAutoClose="true"
-                   Fixed="true" Width="280px" MiniWidth="76px" Elevation="0" Class="portal-sidebar">
+        <MudDrawer Variant="@DrawerVariant.Mini" @bind-Open="_drawerOpen" OpenMiniOnHover="@(!_isMobile)"
+                   Breakpoint="@Breakpoint.Md" Overlay="true" OverlayAutoClose="true" Fixed="true" Width="280px"
+                   MiniWidth="76px" Elevation="0" Class="portal-sidebar">
             <div class="sidebar-content">
                 <div class="sidebar-brand" aria-label="@ApplicationOptions.Value.Name">
                     <span class="brand-icon">
