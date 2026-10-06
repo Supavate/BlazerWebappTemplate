@@ -22,7 +22,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddMudServices();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddSingleton(_ => new NavigationService(typeof(Program).Assembly));
+builder.Services.AddSingleton(_ => new NavigationService(NavigationCatalog.Items));
 builder.Services.AddScoped<NavigationAuthorizationService>();
 builder.Services.AddScoped<NavigationMerger>();
 

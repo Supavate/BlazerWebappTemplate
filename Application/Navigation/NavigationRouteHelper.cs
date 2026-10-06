@@ -12,4 +12,12 @@ internal static class NavigationRouteHelper
 
         return $"/{trimmed.Trim('/')}";
     }
+
+    public static string ToBaseRelativeHref(string route)
+    {
+        var trimmed = route.Trim();
+        return trimmed.Length == 0 || trimmed == "/" 
+            ? "./" 
+            : $"./{trimmed.TrimStart('/')}";
+    }
 }

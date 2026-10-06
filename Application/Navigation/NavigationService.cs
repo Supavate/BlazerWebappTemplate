@@ -4,180 +4,108 @@ using Microsoft.AspNetCore.Components;
 
 namespace MyWebApp.Navigation;
 
-public sealed class NavigationService
+public sealed class NavigationService(IEnumerable<NavigationCatalogItem> catalogItems)
 {
-    public NavigationService(Assembly assembly)
+
+    public IReadOnlyList<NavItem> Items { get; } = BuildTree(catalogItems);
+
+    private static IReadOnlyList<NavItem> BuildTree(IEnumerable<NavigationCatalogItem> catalogItems)
     {
-        Items = BuildTree(assembly);
-    }
+        ArgumentNullException.ThrowIfNull(catalogItems);
 
-    public IReadOnlyList<NavItem> Items { get; }
+        var routes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var componentTypes = new HashSet<Type>();
+        var ancestors = new HashSet<NavigationCatalogItem>(ReferenceEqualityComparer.Instance);
 
-    private static IReadOnlyList<NavItem> BuildTree(Assembly assembly)
-    {
-        var pages = assembly.DefinedTypes
-            .Where(type => !type.IsAbstract && typeof(IComponent).IsAssignableFrom(type))
-            .Select(type => new
-            {
-                Type = type.AsType(),
-                Menu = type.GetCustomAttribute<NavMenuAttribute>(),
-                Routes = type.GetCustomAttributes<RouteAttribute>().ToArray(),
-                AuthorizationData = type
-                    .GetCustomAttributes<AuthorizeAttribute>(inherit: true)
-                    .Cast<IAuthorizeData>()
-                    .ToArray()
-            })
-            .Where(page => page.Menu is not null)
-            .Select(page => CreateNode(
-                page.Type,
-                page.Menu!,
-                page.Routes,
-                page.AuthorizationData))
-            .ToArray();
-
-        var duplicateRoute = pages
-            .GroupBy(page => page.Route, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(group => group.Count() > 1);
-
-        if (duplicateRoute is not null)
-        {
-            throw new InvalidOperationException(
-                $"Navigation route '{duplicateRoute.Key}' is declared more than once.");
-        }
-
-        var byRoute = pages.ToDictionary(page => page.Route, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var page in pages.Where(page => page.Parent is not null))
-        {
-            if (!byRoute.TryGetValue(page.Parent!, out var parent))
-            {
-                throw new InvalidOperationException(
-                    $"Navigation item '{page.Title}' references missing parent route '{page.Parent}'.");
-            }
-
-            parent.Children.Add(page);
-        }
-
-        ValidateNoCycles(pages);
-
-        return pages
-            .Where(page => page.Parent is null)
-            .OrderBy(page => page.Order)
-            .ThenBy(page => page.Title, StringComparer.OrdinalIgnoreCase)
-            .Select(ToNavItem)
+        return catalogItems
+            .Select(items => BuildItem(items, routes, componentTypes, ancestors))
             .ToArray();
     }
 
-    private static MutableNavNode CreateNode(
-        Type componentType,
-        NavMenuAttribute menu,
-        RouteAttribute[] routes,
-        IReadOnlyList<IAuthorizeData> authorizationData)
+    private static NavItem BuildItem(
+        NavigationCatalogItem item,
+        ISet<string> routes,
+        ISet<Type> componentTypes,
+        ISet<NavigationCatalogItem> ancestors
+    )
     {
-        if (string.IsNullOrWhiteSpace(menu.Title))
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (!ancestors.Add(item))
         {
             throw new InvalidOperationException(
-                $"Navigation title is required for '{componentType.FullName}'.");
+                $"Circular navigation relationship detected for '{item.ComponentType.FullName}'.");
         }
-
-        if (string.IsNullOrWhiteSpace(menu.Icon))
+        try
         {
-            throw new InvalidOperationException(
-                $"Navigation icon is required for '{componentType.FullName}'.");
-        }
+            ValidateMetadata(item);
 
-        if (routes.Length != 1)
-        {
-            throw new InvalidOperationException(
-                $"Navigation component '{componentType.FullName}' must declare exactly one @page route.");
-        }
-
-        var route = NavigationRouteHelper.Normalize(routes[0].Template);
-        if (route.Contains('{', StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"Navigation route '{route}' cannot contain route parameters.");
-        }
-
-        return new MutableNavNode(
-            menu.Title.Trim(),
-            menu.Icon,
-            route,
-            NormalizeOptionalRoute(menu.Parent),
-            menu.Order,
-            authorizationData);
-    }
-
-    private static string? NormalizeOptionalRoute(string? route) =>
-        string.IsNullOrWhiteSpace(route) ? null : NavigationRouteHelper.Normalize(route);
-
-    private static void ValidateNoCycles(IEnumerable<MutableNavNode> pages)
-    {
-        var visitState = new Dictionary<MutableNavNode, VisitState>();
-
-        foreach (var page in pages)
-        {
-            Visit(page, visitState);
-        }
-    }
-
-    private static void Visit(
-        MutableNavNode page,
-        IDictionary<MutableNavNode, VisitState> visitState)
-    {
-        if (visitState.TryGetValue(page, out var state))
-        {
-            if (state == VisitState.Visiting)
+            if (!typeof(IComponent).IsAssignableFrom(item.ComponentType))
             {
                 throw new InvalidOperationException(
-                    $"Circular navigation relationship detected at route '{page.Route}'.");
+                    $"Navigation component '{item.ComponentType.FullName}' must implement IComponent.");
             }
 
-            return;
-        }
+            if (!componentTypes.Add(item.ComponentType))
+            {
+                throw new InvalidOperationException(
+                    $"Navigation component '{item.ComponentType.FullName}' is declared more than once.");
+            }
 
-        visitState[page] = VisitState.Visiting;
-        foreach (var child in page.Children)
+            var declaredRoutes = item.ComponentType.GetCustomAttributes<RouteAttribute>().ToArray();
+            if (declaredRoutes.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Navigation component '{item.ComponentType.FullName}' must declare exactly one @page route.");
+            }
+
+            var route = NavigationRouteHelper.Normalize(declaredRoutes[0].Template);
+            if (route.Contains('{', StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Navigation route '{route}' cannot contain route parameters.");
+            }
+
+            if (!routes.Add(route))
+            {
+                throw new InvalidOperationException(
+                    $"Navigation route '{route}' is declared more than once.");
+            }
+
+            var authorizationData = item.ComponentType
+                .GetCustomAttributes<AuthorizeAttribute>(inherit: true)
+                .Cast<IAuthorizeData>()
+                .ToArray();
+
+            var children = (item.Children ?? [])
+                .Select(child => BuildItem(child, routes, componentTypes, ancestors))
+                .ToArray();
+                
+            return new NavItem(item.Title.Trim(), item.Icon, route, authorizationData, children);
+        }
+        finally
         {
-            Visit(child, visitState);
+            ancestors.Remove(item);
+        }
+    }
+
+    private static void ValidateMetadata(NavigationCatalogItem item)
+    {
+        if (item.ComponentType is null)
+        {
+            throw new InvalidOperationException("A navigation component type is required.");
         }
 
-        visitState[page] = VisitState.Visited;
-    }
+        if (string.IsNullOrWhiteSpace(item.Title))
+        {
+            throw new InvalidOperationException(
+                $"Navigation title is required for '{item.ComponentType.FullName}'.");
+        }
 
-    private static NavItem ToNavItem(MutableNavNode page) =>
-        new(
-            page.Title,
-            page.Icon,
-            page.Route,
-            page.Order,
-            page.AuthorizationData,
-            page.Children
-                .OrderBy(child => child.Order)
-                .ThenBy(child => child.Title, StringComparer.OrdinalIgnoreCase)
-                .Select(ToNavItem)
-                .ToArray());
-
-    private sealed class MutableNavNode(
-        string title,
-        string icon,
-        string route,
-        string? parent,
-        int order,
-        IReadOnlyList<IAuthorizeData> authorizationData)
-    {
-        public string Title { get; } = title;
-        public string Icon { get; } = icon;
-        public string Route { get; } = route;
-        public string? Parent { get; } = parent;
-        public int Order { get; } = order;
-        public IReadOnlyList<IAuthorizeData> AuthorizationData { get; } = authorizationData;
-        public List<MutableNavNode> Children { get; } = [];
-    }
-
-    private enum VisitState
-    {
-        Visiting,
-        Visited
+        if (string.IsNullOrWhiteSpace(item.Icon))
+        {
+            throw new InvalidOperationException(
+                $"Navigation icon is required for '{item.ComponentType.FullName}'.");
+        }
     }
 }

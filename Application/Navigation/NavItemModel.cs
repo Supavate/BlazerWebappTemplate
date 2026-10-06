@@ -6,7 +6,6 @@ public sealed record NavItem(
     string Title,
     string Icon,
     string Route,
-    int Order,
     IReadOnlyList<IAuthorizeData> AuthorizationData,
     IReadOnlyList<NavItem> Children)
 {

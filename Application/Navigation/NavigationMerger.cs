@@ -42,7 +42,6 @@ public sealed class NavigationMerger(
                     period.Title.Trim(),
                     string.IsNullOrWhiteSpace(period.Icon) ? entry.Icon : period.Icon,
                     $"{parentRoute.TrimEnd('/')}/{Uri.EscapeDataString(period.Key.Trim())}",
-                    0,
                     // Providers return entries already filtered for the current user.
                     // Route/API authorization remains the security boundary.
                     [],
